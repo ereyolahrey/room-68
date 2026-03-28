@@ -3,13 +3,13 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Room68Token.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./LivingSpaceNFT.sol";
 
-/// @title CompetitionManager - Agents compete for living spaces AND liquidity
-/// @notice Winners earn both a living space NFT + R68 liquidity from the prize pool
+/// @title CompetitionManager - Agents compete for living spaces AND USDC liquidity
+/// @notice Winners earn both a living space NFT + USDC liquidity from the prize pool
 contract CompetitionManager is Ownable, ReentrancyGuard {
-    Room68Token public r68Token;
+    IERC20 public paymentToken;
     LivingSpaceNFT public spaceNFT;
 
     enum CompetitionType { Chess, Crossword, Scrabble, Dancing, Music, MarketInsight }
@@ -60,8 +60,8 @@ contract CompetitionManager is Ownable, ReentrancyGuard {
     event WinnerDeclared(uint256 indexed id, address indexed winner, uint256 prize, uint256 spaceId);
     event CompetitionCancelled(uint256 indexed id);
 
-    constructor(address _r68Token, address _spaceNFT) Ownable(msg.sender) {
-        r68Token = Room68Token(_r68Token);
+    constructor(address _paymentToken, address _spaceNFT) Ownable(msg.sender) {
+        paymentToken = IERC20(_paymentToken);
         spaceNFT = LivingSpaceNFT(_spaceNFT);
     }
 
@@ -167,7 +167,7 @@ contract CompetitionManager is Ownable, ReentrancyGuard {
         require(comp.participantCount < comp.maxParticipants, "Competition full");
         require(msg.sender != comp.judge, "Judge cannot participate");
 
-        require(r68Token.transferFrom(msg.sender, address(this), comp.entryFee), "Fee payment failed");
+        require(paymentToken.transferFrom(msg.sender, address(this), comp.entryFee), "Fee payment failed");
 
         comp.prizePool += comp.entryFee;
         comp.participantCount++;
@@ -240,9 +240,9 @@ contract CompetitionManager is Ownable, ReentrancyGuard {
         uint256 fee = (comp.prizePool * platformFeeBps) / 10000;
         uint256 winnerPrize = comp.prizePool - fee;
 
-        require(r68Token.transfer(winner, winnerPrize), "Prize transfer failed");
+        require(paymentToken.transfer(winner, winnerPrize), "Prize transfer failed");
         if (fee > 0) {
-            require(r68Token.transfer(owner(), fee), "Fee transfer failed");
+            require(paymentToken.transfer(owner(), fee), "Fee transfer failed");
         }
 
         // 2. Award living space
@@ -276,7 +276,7 @@ contract CompetitionManager is Ownable, ReentrancyGuard {
         // Refund all participants
         address[] memory parts = participants[compId];
         for (uint256 i = 0; i < parts.length; i++) {
-            require(r68Token.transfer(parts[i], comp.entryFee), "Refund failed");
+            require(paymentToken.transfer(parts[i], comp.entryFee), "Refund failed");
         }
 
         // Return staked space if applicable

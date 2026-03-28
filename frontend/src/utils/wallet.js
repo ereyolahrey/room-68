@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { ARC_TESTNET, CONTRACTS } from '../contracts/config.js';
 import {
-  Room68TokenABI,
+  ERC20ABI,
   LivingSpaceNFTABI,
   LivingSpaceMarketABI,
   LendingPoolABI,
@@ -92,7 +92,7 @@ export function getReadProvider() {
 
 export function getContracts(signerOrProvider) {
   return {
-    token: new ethers.Contract(CONTRACTS.Room68Token, Room68TokenABI, signerOrProvider),
+    token: new ethers.Contract(CONTRACTS.USDC, ERC20ABI, signerOrProvider),
     spaceNFT: new ethers.Contract(CONTRACTS.LivingSpaceNFT, LivingSpaceNFTABI, signerOrProvider),
     market: new ethers.Contract(CONTRACTS.LivingSpaceMarket, LivingSpaceMarketABI, signerOrProvider),
     lending: new ethers.Contract(CONTRACTS.LendingPool, LendingPoolABI, signerOrProvider),
@@ -106,13 +106,13 @@ export function shortenAddress(addr) {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export function formatR68(value) {
+export function formatUSDC(value) {
   return parseFloat(ethers.formatEther(value)).toLocaleString(undefined, {
     maximumFractionDigits: 2,
   });
 }
 
-export function parseR68(value) {
+export function parseUSDC(value) {
   return ethers.parseEther(value.toString());
 }
 

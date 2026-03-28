@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, formatR68, parseR68, logActivity } from '../utils/wallet.js';
+import { getContracts, formatUSDC, parseUSDC, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
@@ -109,7 +109,7 @@ export default function MySpaces({ wallet, showToast }) {
   async function handleListSpace(tokenId) {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
-      const price = parseR68(listPrice);
+      const price = parseUSDC(listPrice);
       const contracts = getContracts(wallet.signer);
 
       showToast('Approving NFT transfer...', 'info');
@@ -137,8 +137,8 @@ export default function MySpaces({ wallet, showToast }) {
       showToast('Listing space for rent...', 'info');
       const tx = await contracts.spaceNFT.listForRent(
         tokenId,
-        parseR68(rentPrice),
-        parseR68(rentDeposit),
+        parseUSDC(rentPrice),
+        parseUSDC(rentDeposit),
         parseInt(rentMinMonths),
         parseInt(rentMaxMonths)
       );
@@ -160,7 +160,7 @@ export default function MySpaces({ wallet, showToast }) {
     try {
       const contracts = getContracts(wallet.signer);
       const totalUpfront = deposit + monthlyRent;
-      showToast('Approving R68 for deposit + first month...', 'info');
+      showToast('Approving USDC for deposit + first month...', 'info');
       await (await contracts.token.approve(CONTRACTS.LivingSpaceNFT, totalUpfront)).wait();
       showToast('Renting space...', 'info');
       const tx = await contracts.spaceNFT.rentSpace(tokenId, parseInt(rentMonths));
@@ -268,7 +268,7 @@ export default function MySpaces({ wallet, showToast }) {
                           {statusLabels[s.status]}
                         </span>
                       </div>
-                      <div className="space-value">{formatR68(s.value)} R68</div>
+                      <div className="space-value">{formatUSDC(s.value)} USDC</div>
                       {s.status === 0 && (
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                           <button className="btn btn-primary btn-sm" onClick={() => setListModal(s)} style={{ flex: 1 }}>
@@ -308,10 +308,10 @@ export default function MySpaces({ wallet, showToast }) {
                       Landlord: {l.landlord.slice(0, 6)}...{l.landlord.slice(-4)}
                     </div>
                     <div style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                      Rent: <strong>{formatR68(l.monthlyRent)} R68/mo</strong>
+                      Rent: <strong>{formatUSDC(l.monthlyRent)} USDC/mo</strong>
                     </div>
                     <div style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                      Deposit: {formatR68(l.deposit)} R68
+                      Deposit: {formatUSDC(l.deposit)} USDC
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                       {l.minMonths}-{l.maxMonths} months
@@ -320,7 +320,7 @@ export default function MySpaces({ wallet, showToast }) {
                       <input className="form-input" type="number" min={l.minMonths} max={l.maxMonths} value={rentMonths} onChange={(e) => setRentMonths(e.target.value)} placeholder="Months" style={{ fontSize: '0.85rem' }} />
                     </div>
                     <button className="btn btn-primary btn-sm btn-full" onClick={() => handleRentSpace(l.tokenId, l.deposit, l.monthlyRent)}>
-                      Rent ({formatR68(l.deposit + l.monthlyRent)} R68 upfront)
+                      Rent ({formatUSDC(l.deposit + l.monthlyRent)} USDC upfront)
                     </button>
                   </div>
                 </div>
@@ -349,7 +349,7 @@ export default function MySpaces({ wallet, showToast }) {
                       Landlord: {r.landlord.slice(0, 6)}...{r.landlord.slice(-4)}
                     </div>
                     <div style={{ fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                      Rent: <strong>{formatR68(r.monthlyRent)} R68/mo</strong>
+                      Rent: <strong>{formatUSDC(r.monthlyRent)} USDC/mo</strong>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                       Ends: {new Date(r.endTime * 1000).toLocaleDateString()}
@@ -379,8 +379,8 @@ export default function MySpaces({ wallet, showToast }) {
               <strong>{listModal.name}</strong> — {SPACE_TYPES[listModal.spaceType]}
             </div>
             <div className="form-group">
-              <label className="form-label">Sale Price (R68)</label>
-              <input className="form-input" type="number" placeholder="Price in R68 tokens" value={listPrice} onChange={(e) => setListPrice(e.target.value)} />
+              <label className="form-label">Sale Price (USDC)</label>
+              <input className="form-input" type="number" placeholder="Price in USDC" value={listPrice} onChange={(e) => setListPrice(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button className="btn btn-primary" onClick={() => handleListSpace(listModal.id)}>List Space</button>
@@ -399,11 +399,11 @@ export default function MySpaces({ wallet, showToast }) {
               <strong>{rentModal.name}</strong> — {SPACE_TYPES[rentModal.spaceType]}
             </div>
             <div className="form-group">
-              <label className="form-label">Monthly Rent (R68)</label>
+              <label className="form-label">Monthly Rent (USDC)</label>
               <input className="form-input" type="number" placeholder="Rent per month" value={rentPrice} onChange={(e) => setRentPrice(e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">Security Deposit (R68)</label>
+              <label className="form-label">Security Deposit (USDC)</label>
               <input className="form-input" type="number" placeholder="Deposit amount" value={rentDeposit} onChange={(e) => setRentDeposit(e.target.value)} />
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>

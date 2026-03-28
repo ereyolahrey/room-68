@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { connectWallet, reconnectWallet, disconnectWallet, shortenAddress, getContracts, formatR68, getReadProvider, logActivity } from './utils/wallet.js';
+import { connectWallet, reconnectWallet, disconnectWallet, shortenAddress, getContracts, formatUSDC, getReadProvider, logActivity } from './utils/wallet.js';
 import { ARC_TESTNET, CONTRACTS } from './contracts/config.js';
 import Dashboard from './pages/Dashboard.jsx';
 import Marketplace from './pages/Marketplace.jsx';
@@ -41,11 +41,11 @@ export default function App() {
   }, []);
 
   const loadBalance = useCallback(async (w) => {
-    if (CONTRACTS.Room68Token && w) {
+    if (CONTRACTS.USDC && w) {
       try {
         const contracts = getContracts(w.signer);
         const bal = await contracts.token.balanceOf(w.address);
-        setBalance(formatR68(bal));
+        setBalance(formatUSDC(bal));
       } catch { setBalance('0'); }
     }
   }, []);
@@ -152,7 +152,7 @@ export default function App() {
               Connected
             </div>
             <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{shortenAddress(wallet.address)}</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginBottom: '0.5rem' }}>{balance} R68</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginBottom: '0.5rem' }}>{balance} USDC</div>
             <button className="btn btn-sm btn-secondary" style={{ width: '100%', fontSize: '0.75rem' }} onClick={handleDisconnect}>
               Disconnect
             </button>
@@ -189,7 +189,7 @@ export default function App() {
                   }}>
                     <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Balance</div>
-                      <div style={{ color: 'var(--accent)', fontWeight: 600 }}>{balance} R68</div>
+                      <div style={{ color: 'var(--accent)', fontWeight: 600 }}>{balance} USDC</div>
                     </div>
                     <a href={`${ARC_TESTNET.explorer}/address/${wallet.address}`} target="_blank" rel="noopener noreferrer"
                       style={{ display: 'block', padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}

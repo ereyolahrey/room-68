@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68, logActivity } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatUSDC, parseUSDC, logActivity } from '../utils/wallet.js';
 import { CONTRACTS, ARC_TESTNET } from '../contracts/config.js';
 
 export default function SwapBridgePage({ wallet, showToast }) {
@@ -53,22 +53,22 @@ export default function SwapBridgePage({ wallet, showToast }) {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
       const contracts = getContracts(wallet.signer);
-      const from = parseR68(fromAmount);
-      const to = parseR68(toAmount);
+      const from = parseUSDC(fromAmount);
+      const to = parseUSDC(toAmount);
 
       showToast('Approving tokens...', 'info');
       await (await contracts.token.approve(CONTRACTS.SwapBridge, from)).wait();
 
       showToast('Creating swap order...', 'info');
       const tx = await contracts.swap.createSwapOrder(
-        CONTRACTS.Room68Token,
-        CONTRACTS.Room68Token, // In production, this would be a different token
+        CONTRACTS.USDC,
+        CONTRACTS.EURC,
         from,
         to
       );
       await tx.wait();
 
-      logActivity('swap', `Created swap order: ${fromAmount} → ${toAmount} R68`);
+      logActivity('swap', `Created swap order: ${fromAmount} USDC → ${toAmount} EURC`);
       showToast('Swap order created!', 'success');
       setFromAmount('');
       setToAmount('');
@@ -103,7 +103,7 @@ export default function SwapBridgePage({ wallet, showToast }) {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
       const contracts = getContracts(wallet.signer);
-      const amount = parseR68(bridgeAmount);
+      const amount = parseUSDC(bridgeAmount);
 
       showToast('Approving tokens...', 'info');
       await (await contracts.token.approve(CONTRACTS.SwapBridge, amount)).wait();
@@ -112,12 +112,12 @@ export default function SwapBridgePage({ wallet, showToast }) {
       const tx = await contracts.swap.initiateBridge(
         'ARC Testnet',
         bridgeChain,
-        CONTRACTS.Room68Token,
+        CONTRACTS.USDC,
         amount
       );
       await tx.wait();
 
-      logActivity('swap', `Bridged ${bridgeAmount} R68 to ${bridgeChain}`);
+      logActivity('swap', `Bridged ${bridgeAmount} USDC to ${bridgeChain}`);
       showToast(`Bridge initiated to ${bridgeChain}!`, 'success');
       setBridgeAmount('');
     } catch (err) {
@@ -153,12 +153,12 @@ export default function SwapBridgePage({ wallet, showToast }) {
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: '1rem' }}>Create Swap Order</h3>
             <div className="form-group">
-              <label className="form-label">You Send (R68)</label>
+              <label className="form-label">You Send (USDC)</label>
               <input className="form-input" type="number" value={fromAmount} onChange={(e) => setFromAmount(e.target.value)} placeholder="Amount to send" />
             </div>
             <div style={{ textAlign: 'center', fontSize: '1.5rem', margin: '0.5rem 0' }}>⇅</div>
             <div className="form-group">
-              <label className="form-label">You Receive (R68)</label>
+              <label className="form-label">You Receive (EURC)</label>
               <input className="form-input" type="number" value={toAmount} onChange={(e) => setToAmount(e.target.value)} placeholder="Amount to receive" />
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
@@ -172,8 +172,8 @@ export default function SwapBridgePage({ wallet, showToast }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '1.5rem' }}>🪙</span>
                 <div>
-                  <div style={{ fontWeight: 600 }}>R68 Token</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Room 68 Liquidity Token</div>
+                  <div style={{ fontWeight: 600 }}>USDC</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Circle USD Stablecoin</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '8px', marginBottom: '0.5rem' }}>
@@ -216,7 +216,7 @@ export default function SwapBridgePage({ wallet, showToast }) {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Amount (R68)</label>
+              <label className="form-label">Amount (USDC)</label>
               <input className="form-input" type="number" value={bridgeAmount} onChange={(e) => setBridgeAmount(e.target.value)} placeholder="Amount to bridge" />
             </div>
             <button className="btn btn-primary btn-full" onClick={handleBridge}>Initiate Bridge</button>
@@ -270,8 +270,8 @@ export default function SwapBridgePage({ wallet, showToast }) {
                     <tr key={o.id}>
                       <td>#{o.id}</td>
                       <td>{o.maker.slice(0, 6)}...{o.maker.slice(-4)}</td>
-                      <td>{formatR68(o.fromAmount)} R68</td>
-                      <td>{formatR68(o.toAmount)} R68</td>
+                      <td>{formatUSDC(o.fromAmount)} USDC</td>
+                      <td>{formatUSDC(o.toAmount)} EURC</td>
                       <td>
                         {wallet && o.maker.toLowerCase() !== wallet.address.toLowerCase() ? (
                           <button className="btn btn-success btn-sm" onClick={() => handleFillOrder(o.id)}>

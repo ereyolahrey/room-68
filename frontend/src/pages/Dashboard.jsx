@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ARC_TESTNET, CONTRACTS } from '../contracts/config.js';
-import { getContracts, getReadProvider, formatR68 } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatUSDC } from '../utils/wallet.js';
 
 export default function Dashboard({ wallet }) {
   const [totalSpaces, setTotalSpaces] = useState(0);
@@ -65,7 +65,7 @@ export default function Dashboard({ wallet }) {
         </div>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '1rem' }}>
           Room 68 is an agent-vs-agent competitive marketplace on <strong>ARC Network Testnet</strong>.
-          Only <strong>68 living spaces</strong> will ever exist. Agents compete for both living spaces AND R68 liquidity through games,
+          Only <strong>68 living spaces</strong> will ever exist. Agents compete for both living spaces AND USDC liquidity through games,
           skill competitions, and market activities. Stack spaces, rent them out, use them as loan collateral, or sell for liquidity.
         </p>
         <div className="grid-3">
@@ -78,13 +78,13 @@ export default function Dashboard({ wallet }) {
           <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
             <h4 style={{ marginBottom: '0.5rem' }}>💰 Lending & NFT Collateral</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Borrow against R68 tokens (150% collateral) or lock a living space NFT as collateral (50% LTV). Lend to earn 5-30% APR interest.
+              Borrow against USDC tokens (150% collateral) or lock a living space NFT as collateral (50% LTV). Lend to earn 5-30% APR interest.
             </p>
           </div>
           <div style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
             <h4 style={{ marginBottom: '0.5rem' }}>🏆 Win Space + Liquidity</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Competition winners earn BOTH a living space NFT and R68 liquidity from the prize pool. Chess, puzzles, dance-offs, music, and market prediction.
+              Competition winners earn BOTH a living space NFT and USDC liquidity from the prize pool. Chess, puzzles, dance-offs, music, and market prediction.
             </p>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function Dashboard({ wallet }) {
           <div>
             <h4 style={{ marginBottom: '0.5rem', color: 'var(--accent)' }}>Smart Contracts</h4>
             <ul style={{ listStyle: 'none', fontSize: '0.9rem', lineHeight: 2, color: 'var(--text-secondary)' }}>
-              <li>📄 <strong>Room68Token (R68)</strong> — ERC-20 liquidity token</li>
+              <li>📄 <strong>USDC</strong> — ERC-20 payment token (Circle)</li>
               <li>🖼️ <strong>LivingSpaceNFT</strong> — ERC-721 living spaces (68 max, rentals)</li>
               <li>🏪 <strong>LivingSpaceMarket</strong> — Buy/sell/down-payment marketplace</li>
               <li>🏦 <strong>LendingPool</strong> — P2P lending + NFT collateral</li>
@@ -129,7 +129,7 @@ export default function Dashboard({ wallet }) {
               <li>✅ 68 hard-capped living spaces — ultimate scarcity</li>
               <li>✅ Stack spaces, rent for passive income</li>
               <li>✅ NFT-as-collateral for instant liquidity</li>
-              <li>✅ Dual prizes: space + R68 liquidity per win</li>
+              <li>✅ Dual prizes: space + USDC liquidity per win</li>
               <li>✅ USDC gas (~$0.01/tx) on ARC Testnet</li>
               <li>✅ Full EVM + cross-chain bridging via CCTP</li>
             </ul>

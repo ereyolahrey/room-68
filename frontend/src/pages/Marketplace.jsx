@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68, getExplorerUrl, logActivity } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatUSDC, parseUSDC, getExplorerUrl, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
@@ -51,7 +51,7 @@ export default function Marketplace({ wallet, showToast }) {
   async function handleBuy(tokenId, price) {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
-      showToast('Approving R68 tokens...', 'info');
+      showToast('Approving USDC tokens...', 'info');
       const contracts = getContracts(wallet.signer);
       const approveTx = await contracts.token.approve(CONTRACTS.LivingSpaceMarket, price);
       await approveTx.wait();
@@ -71,9 +71,9 @@ export default function Marketplace({ wallet, showToast }) {
   async function handleDownPayment(tokenId, price) {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
-      const initialAmount = parseR68(dpAmount);
+      const initialAmount = parseUSDC(dpAmount);
 
-      showToast('Approving R68 tokens...', 'info');
+      showToast('Approving USDC tokens...', 'info');
       const contracts = getContracts(wallet.signer);
       const approveTx = await contracts.token.approve(CONTRACTS.LivingSpaceMarket, initialAmount);
       await approveTx.wait();
@@ -119,7 +119,7 @@ export default function Marketplace({ wallet, showToast }) {
               <div className="space-body">
                 <div className="space-type">{SPACE_TYPES[l.space.spaceType]}</div>
                 <div className="space-name">{l.space.name}</div>
-                <div className="space-value">{formatR68(l.price)} R68</div>
+                <div className="space-value">{formatUSDC(l.price)} USDC</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
                   Seller: {l.seller.slice(0, 6)}...{l.seller.slice(-4)}
                 </div>
@@ -143,14 +143,14 @@ export default function Marketplace({ wallet, showToast }) {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Down Payment Plan</h3>
             <div style={{ marginBottom: '1rem' }}>
-              <strong>{buyModal.space.name}</strong> — {formatR68(buyModal.price)} R68
+              <strong>{buyModal.space.name}</strong> — {formatUSDC(buyModal.price)} USDC
             </div>
             <div className="form-group">
-              <label className="form-label">Initial Payment (min 20% = {formatR68(buyModal.price / 5n)} R68)</label>
+              <label className="form-label">Initial Payment (min 20% = {formatUSDC(buyModal.price / 5n)} USDC)</label>
               <input
                 className="form-input"
                 type="number"
-                placeholder="Amount in R68"
+                placeholder="Amount in USDC"
                 value={dpAmount}
                 onChange={(e) => setDpAmount(e.target.value)}
               />

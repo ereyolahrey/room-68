@@ -3,13 +3,13 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Room68Token.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./LivingSpaceNFT.sol";
 
-/// @title LendingPool - P2P lending with R68 token AND NFT collateral support
-/// @notice Agents can lend liquidity, borrow against R68 collateral or living space NFTs
+/// @title LendingPool - P2P lending with USDC and NFT collateral support
+/// @notice Agents can lend USDC liquidity, borrow against USDC collateral or living space NFTs
 contract LendingPool is Ownable, ReentrancyGuard {
-    Room68Token public r68Token;
+    IERC20 public paymentToken;
     LivingSpaceNFT public spaceNFT;
 
     uint256 public constant SECONDS_PER_YEAR = 365 days;
@@ -71,14 +71,14 @@ contract LendingPool is Ownable, ReentrancyGuard {
     event CollateralDeposited(address indexed user, uint256 amount);
     event CollateralWithdrawn(address indexed user, uint256 amount);
 
-    constructor(address _r68Token, address _spaceNFT) Ownable(msg.sender) {
-        r68Token = Room68Token(_r68Token);
+    constructor(address _paymentToken, address _spaceNFT) Ownable(msg.sender) {
+        paymentToken = IERC20(_paymentToken);
         spaceNFT = LivingSpaceNFT(_spaceNFT);
     }
 
     function depositCollateral(uint256 amount) external nonReentrant {
         require(amount > 0, "Amount must be > 0");
-        require(r68Token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        require(paymentToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
         collateralBalance[msg.sender] += amount;
         emit CollateralDeposited(msg.sender, amount);
     }
@@ -86,7 +86,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
     function withdrawCollateral(uint256 amount) external nonReentrant {
         require(collateralBalance[msg.sender] >= amount, "Insufficient collateral");
         collateralBalance[msg.sender] -= amount;
-        require(r68Token.transfer(msg.sender, amount), "Transfer failed");
+        require(paymentToken.transfer(msg.sender, amount), "Transfer failed");
         emit CollateralWithdrawn(msg.sender, amount);
     }
 
@@ -101,7 +101,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
         require(minDurationDays >= 1 && maxDurationDays <= 365, "Invalid duration");
         require(minDurationDays <= maxDurationDays, "Min > max duration");
 
-        require(r68Token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        require(paymentToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
 
         uint256 offerId = nextOfferId++;
         offers[offerId] = LendOffer({
@@ -135,7 +135,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
         totalLent[msg.sender] -= remaining;
         totalPoolLiquidity -= remaining;
 
-        require(r68Token.transfer(msg.sender, remaining), "Transfer failed");
+        require(paymentToken.transfer(msg.sender, remaining), "Transfer failed");
         emit OfferCancelled(offerId);
     }
 
@@ -178,7 +178,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
         totalBorrowed[msg.sender] += amount;
         totalPoolLiquidity -= amount;
 
-        require(r68Token.transfer(msg.sender, amount), "Transfer failed");
+        require(paymentToken.transfer(msg.sender, amount), "Transfer failed");
 
         emit LoanCreated(loanId, offerId, msg.sender, amount, requiredCollateral);
         return loanId;
@@ -228,7 +228,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
         totalBorrowed[msg.sender] += maxBorrow;
         totalPoolLiquidity -= maxBorrow;
 
-        require(r68Token.transfer(msg.sender, maxBorrow), "Transfer failed");
+        require(paymentToken.transfer(msg.sender, maxBorrow), "Transfer failed");
 
         emit NFTLoanCreated(loanId, offerId, msg.sender, maxBorrow, nftTokenId);
         return loanId;
@@ -253,7 +253,7 @@ contract LendingPool is Ownable, ReentrancyGuard {
         loan.repaid = true;
         loan.interestAccrued = interest;
 
-        require(r68Token.transferFrom(msg.sender, address(this), totalRepayment), "Repayment failed");
+        require(paymentToken.transferFrom(msg.sender, address(this), totalRepayment), "Repayment failed");
 
         // Return collateral
         if (loan.nftCollateral != type(uint256).max) {
@@ -263,10 +263,10 @@ contract LendingPool is Ownable, ReentrancyGuard {
             spaceNFT.transferFrom(address(this), msg.sender, loan.nftCollateral);
         } else {
             // Return R68 collateral
-            require(r68Token.transfer(msg.sender, loan.collateral), "Collateral return failed");
+            require(paymentToken.transfer(msg.sender, loan.collateral), "Collateral return failed");
         }
 
-        require(r68Token.transfer(loan.lender, totalRepayment), "Lender payment failed");
+        require(paymentToken.transfer(loan.lender, totalRepayment), "Lender payment failed");
 
         totalBorrowed[msg.sender] -= loan.principal;
         totalPoolLiquidity += loan.principal;
@@ -307,8 +307,8 @@ contract LendingPool is Ownable, ReentrancyGuard {
             uint256 liquidatorBonus = (loan.collateral * 500) / BASIS_POINTS;
             uint256 lenderShare = loan.collateral - liquidatorBonus;
 
-            require(r68Token.transfer(msg.sender, liquidatorBonus), "Bonus failed");
-            require(r68Token.transfer(loan.lender, lenderShare), "Lender share failed");
+            require(paymentToken.transfer(msg.sender, liquidatorBonus), "Bonus failed");
+            require(paymentToken.transfer(loan.lender, lenderShare), "Lender share failed");
 
             emit LoanLiquidated(loanId, msg.sender, loan.collateral);
         }

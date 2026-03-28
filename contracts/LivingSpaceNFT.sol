@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Room68Token.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title LivingSpaceNFT - NFTs representing living spaces in Room 68
 /// @notice Max 68 living spaces. Agents can own, trade, stack, rent, and use as collateral.
@@ -13,7 +13,7 @@ contract LivingSpaceNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
     uint256 private _nextTokenId;
     uint256 public constant MAX_SUPPLY = 68;
 
-    Room68Token public r68Token;
+    IERC20 public paymentToken; // USDC on ARC Testnet
 
     enum SpaceType { Studio, Apartment, Penthouse, Mansion, Estate }
     enum SpaceStatus { Available, Occupied, Listed, Locked, Rented, Collateralized }
@@ -73,8 +73,8 @@ contract LivingSpaceNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(address _r68Token) ERC721("Room 68 Living Space", "R68SPACE") Ownable(msg.sender) {
-        r68Token = Room68Token(_r68Token);
+    constructor(address _paymentToken) ERC721("Room 68 Living Space", "R68SPACE") Ownable(msg.sender) {
+        paymentToken = IERC20(_paymentToken);
     }
 
     function authorizeMarket(address _market) external onlyOwner {
@@ -154,8 +154,8 @@ contract LivingSpaceNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         require(months >= listing.minMonths && months <= listing.maxMonths, "Invalid duration");
         require(msg.sender != listing.landlord, "Cannot rent own space");
 
-        require(r68Token.transferFrom(msg.sender, address(this), listing.deposit), "Deposit failed");
-        require(r68Token.transferFrom(msg.sender, listing.landlord, listing.monthlyRent), "First rent failed");
+        require(paymentToken.transferFrom(msg.sender, address(this), listing.deposit), "Deposit failed");
+        require(paymentToken.transferFrom(msg.sender, listing.landlord, listing.monthlyRent), "First rent failed");
 
         listing.active = false;
         _removeRentalListing(tokenId);
@@ -184,7 +184,7 @@ contract LivingSpaceNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
         require(rental.tenant == msg.sender, "Not the tenant");
         require(block.timestamp <= rental.endTime, "Rental expired");
 
-        require(r68Token.transferFrom(msg.sender, rental.landlord, rental.monthlyRent), "Rent payment failed");
+        require(paymentToken.transferFrom(msg.sender, rental.landlord, rental.monthlyRent), "Rent payment failed");
         rental.lastRentPaid = block.timestamp;
 
         emit RentPaid(rentalId, msg.sender, rental.monthlyRent);
@@ -210,9 +210,9 @@ contract LivingSpaceNFT is ERC721, ERC721Enumerable, Ownable, ReentrancyGuard {
 
         // Return deposit to tenant (unless overdue — landlord keeps deposit)
         if (!isOverdue) {
-            require(r68Token.transfer(rental.tenant, rental.deposit), "Deposit return failed");
+            require(paymentToken.transfer(rental.tenant, rental.deposit), "Deposit return failed");
         } else {
-            require(r68Token.transfer(rental.landlord, rental.deposit), "Deposit forfeit failed");
+            require(paymentToken.transfer(rental.landlord, rental.deposit), "Deposit forfeit failed");
         }
 
         emit RentalEnded(rentalId, rental.tokenId);

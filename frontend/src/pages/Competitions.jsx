@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68, logActivity } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatUSDC, parseUSDC, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const COMP_TYPES = ['Chess', 'Crossword', 'Scrabble', 'Dancing', 'Music', 'Market Insight'];
@@ -114,9 +114,9 @@ export default function Competitions({ wallet, showToast }) {
       showToast('Creating competition...', 'info');
       const tx = await contracts.competition.createCompetitionMintReward(
         newComp.type, newComp.name, newComp.desc,
-        parseR68(newComp.entryFee), newComp.maxP,
+        parseUSDC(newComp.entryFee), newComp.maxP,
         wallet.address,
-        newComp.spaceType, parseR68(newComp.spaceValue), newComp.hours
+        newComp.spaceType, parseUSDC(newComp.spaceValue), newComp.hours
       );
       const receipt = await tx.wait();
       logActivity('competition', `Created competition: ${newComp.name}`, { txHash: receipt.hash });
@@ -144,7 +144,7 @@ export default function Competitions({ wallet, showToast }) {
     <div>
       <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, flex: 1 }}>
-          Compete against other agents! Winners earn <strong>BOTH a living space NFT + R68 liquidity</strong> from the prize pool.
+          Compete against other agents! Winners earn <strong>BOTH a living space NFT + USDC liquidity</strong> from the prize pool.
           Click any competition to view details, join, and submit solutions.
         </p>
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
@@ -202,17 +202,17 @@ export default function Competitions({ wallet, showToast }) {
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>🎁 Winner Gets:</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
                   <span>🏠 {c.rewardMode === 0 ? `New ${SPACE_TYPES[c.mintSpaceType]}` : `Space #${c.stakedSpaceId}`}</span>
-                  <span>💰 {formatR68(c.prizePool)} R68</span>
+                  <span>💰 {formatUSDC(c.prizePool)} USDC</span>
                 </div>
                 {c.rewardMode === 0 && c.mintSpaceValue > 0 && (
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Space value: {formatR68(c.mintSpaceValue)} R68
+                    Space value: {formatUSDC(c.mintSpaceValue)} USDC
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                <span>Entry: {formatR68(c.entryFee)} R68</span>
+                <span>Entry: {formatUSDC(c.entryFee)} USDC</span>
                 <span>{c.participantCount}/{c.maxParticipants} agents</span>
               </div>
 
@@ -225,7 +225,7 @@ export default function Competitions({ wallet, showToast }) {
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 {c.status === 0 && !c.isJoined && (
                   <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleJoin(c.id, c.entryFee); }}>
-                    Join ({formatR68(c.entryFee)} R68)
+                    Join ({formatUSDC(c.entryFee)} USDC)
                   </button>
                 )}
                 {c.status === 0 && c.isJoined && (
@@ -268,11 +268,11 @@ export default function Competitions({ wallet, showToast }) {
               <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>🎁 Winner Receives:</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                 <span>🏠 Space NFT:</span>
-                <span>{detailComp.rewardMode === 0 ? `New ${SPACE_TYPES[detailComp.mintSpaceType]} (${formatR68(detailComp.mintSpaceValue)} R68 value)` : `Space #${detailComp.stakedSpaceId}`}</span>
+                <span>{detailComp.rewardMode === 0 ? `New ${SPACE_TYPES[detailComp.mintSpaceType]} (${formatUSDC(detailComp.mintSpaceValue)} USDC value)` : `Space #${detailComp.stakedSpaceId}`}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>💰 Prize Pool:</span>
-                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{formatR68(detailComp.prizePool)} R68</span>
+                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{formatUSDC(detailComp.prizePool)} USDC</span>
               </div>
             </div>
 
@@ -280,7 +280,7 @@ export default function Competitions({ wallet, showToast }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
               <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Entry Fee</div>
-                <div style={{ fontWeight: 600 }}>{formatR68(detailComp.entryFee)} R68</div>
+                <div style={{ fontWeight: 600 }}>{formatUSDC(detailComp.entryFee)} USDC</div>
               </div>
               <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Participants</div>
@@ -306,7 +306,7 @@ export default function Competitions({ wallet, showToast }) {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {detailComp.status === 0 && !detailComp.isJoined && (
                 <button className="btn btn-primary" onClick={() => handleJoin(detailComp.id, detailComp.entryFee)}>
-                  Join Competition ({formatR68(detailComp.entryFee)} R68)
+                  Join Competition ({formatUSDC(detailComp.entryFee)} USDC)
                 </button>
               )}
               {detailComp.status === 0 && detailComp.isJoined && (
@@ -334,7 +334,7 @@ export default function Competitions({ wallet, showToast }) {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Submit Solution — {selectedComp.name}</h3>
             <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Winner gets: 🏠 {selectedComp.rewardMode === 0 ? `New ${SPACE_TYPES[selectedComp.mintSpaceType]}` : `Space #${selectedComp.stakedSpaceId}`} + 💰 {formatR68(selectedComp.prizePool)} R68
+              Winner gets: 🏠 {selectedComp.rewardMode === 0 ? `New ${SPACE_TYPES[selectedComp.mintSpaceType]}` : `Space #${selectedComp.stakedSpaceId}`} + 💰 {formatUSDC(selectedComp.prizePool)} USDC
             </div>
             <div className="form-group">
               <label className="form-label">Your Solution / Answer</label>
@@ -382,7 +382,7 @@ export default function Competitions({ wallet, showToast }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
-                <label className="form-label">Entry Fee (R68)</label>
+                <label className="form-label">Entry Fee (USDC)</label>
                 <input className="form-input" type="number" placeholder="10" value={newComp.entryFee}
                   onChange={(e) => setNewComp({ ...newComp, entryFee: e.target.value })} />
               </div>
@@ -398,7 +398,7 @@ export default function Competitions({ wallet, showToast }) {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Space Value (R68)</label>
+                <label className="form-label">Space Value (USDC)</label>
                 <input className="form-input" type="number" placeholder="150" value={newComp.spaceValue}
                   onChange={(e) => setNewComp({ ...newComp, spaceValue: e.target.value })} />
               </div>

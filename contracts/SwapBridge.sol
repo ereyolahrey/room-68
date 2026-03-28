@@ -3,12 +3,11 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Room68Token.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title SwapBridge - Token swapping and bridging hub for Room 68
-/// @notice Facilitates token swaps within Room 68 and tracks cross-chain bridge operations
+/// @notice Facilitates USDC/EURC swaps and tracks cross-chain bridge operations
 contract SwapBridge is Ownable, ReentrancyGuard {
-    Room68Token public r68Token;
 
     uint256 public swapFeeBps = 30; // 0.3% swap fee
     uint256 public constant MAX_FEE_BPS = 500;
@@ -60,9 +59,7 @@ contract SwapBridge is Ownable, ReentrancyGuard {
     event BridgeInitiated(uint256 indexed requestId, address indexed user, string fromChain, string toChain, uint256 amount);
     event BridgeCompleted(uint256 indexed requestId);
 
-    constructor(address _r68Token) Ownable(msg.sender) {
-        r68Token = Room68Token(_r68Token);
-    }
+    constructor() Ownable(msg.sender) {}
 
     /// @notice Register a supported bridged token
     function registerToken(address tokenAddress, string calldata symbol) external onlyOwner {
@@ -90,7 +87,7 @@ contract SwapBridge is Ownable, ReentrancyGuard {
 
         // Transfer from-tokens from maker to contract
         require(
-            Room68Token(fromToken).transferFrom(msg.sender, address(this), fromAmount),
+            IERC20(fromToken).transferFrom(msg.sender, address(this), fromAmount),
             "Transfer failed"
         );
 
@@ -121,7 +118,7 @@ contract SwapBridge is Ownable, ReentrancyGuard {
 
         // Taker sends toToken to maker
         require(
-            Room68Token(order.toToken).transferFrom(msg.sender, order.maker, order.toAmount),
+            IERC20(order.toToken).transferFrom(msg.sender, order.maker, order.toAmount),
             "Taker payment failed"
         );
 
@@ -129,9 +126,9 @@ contract SwapBridge is Ownable, ReentrancyGuard {
         uint256 fee = (order.fromAmount * swapFeeBps) / 10000;
         uint256 takerReceives = order.fromAmount - fee;
 
-        require(Room68Token(order.fromToken).transfer(msg.sender, takerReceives), "Transfer to taker failed");
+        require(IERC20(order.fromToken).transfer(msg.sender, takerReceives), "Transfer to taker failed");
         if (fee > 0) {
-            require(Room68Token(order.fromToken).transfer(owner(), fee), "Fee transfer failed");
+            require(IERC20(order.fromToken).transfer(owner(), fee), "Fee transfer failed");
         }
 
         emit SwapOrderFilled(orderId, msg.sender);
@@ -144,7 +141,7 @@ contract SwapBridge is Ownable, ReentrancyGuard {
         require(!order.filled && !order.cancelled, "Order inactive");
 
         order.cancelled = true;
-        require(Room68Token(order.fromToken).transfer(msg.sender, order.fromAmount), "Refund failed");
+        require(IERC20(order.fromToken).transfer(msg.sender, order.fromAmount), "Refund failed");
 
         emit SwapOrderCancelled(orderId);
     }
@@ -160,7 +157,7 @@ contract SwapBridge is Ownable, ReentrancyGuard {
 
         // Lock tokens for bridging
         require(
-            Room68Token(tokenAddress).transferFrom(msg.sender, address(this), amount),
+            IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount),
             "Transfer failed"
         );
 

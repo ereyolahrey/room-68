@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68, logActivity } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatUSDC, parseUSDC, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
@@ -40,11 +40,11 @@ export default function Lending({ wallet, showToast }) {
       const totalOffers = await contracts.lending.nextOfferId();
       const totalLoans = await contracts.lending.nextLoanId();
       const liquidity = await contracts.lending.totalPoolLiquidity();
-      setPoolLiquidity(formatR68(liquidity));
+      setPoolLiquidity(formatUSDC(liquidity));
 
       if (wallet) {
         const col = await contracts.lending.collateralBalance(wallet.address);
-        setCollateral(formatR68(col));
+        setCollateral(formatUSDC(col));
 
         // Load user's spaces for NFT collateral
         const tokenIds = await contracts.spaceNFT.getSpacesByOwner(wallet.address);
@@ -118,7 +118,7 @@ export default function Lending({ wallet, showToast }) {
   async function handleDepositCollateral() {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
-      const amount = parseR68(collateralAmount);
+      const amount = parseUSDC(collateralAmount);
       const contracts = getContracts(wallet.signer);
 
       showToast('Approving tokens...', 'info');
@@ -128,7 +128,7 @@ export default function Lending({ wallet, showToast }) {
       const tx = await contracts.lending.depositCollateral(amount);
       await tx.wait();
 
-      logActivity('lending', 'Deposited R68 collateral');
+      logActivity('lending', 'Deposited USDC collateral');
       showToast('Collateral deposited!', 'success');
       setCollateralAmount('');
       loadData();
@@ -140,7 +140,7 @@ export default function Lending({ wallet, showToast }) {
   async function handleCreateOffer() {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
-      const amount = parseR68(lendAmount);
+      const amount = parseUSDC(lendAmount);
       const contracts = getContracts(wallet.signer);
 
       showToast('Approving tokens...', 'info');
@@ -164,14 +164,14 @@ export default function Lending({ wallet, showToast }) {
   async function handleBorrow(offerId) {
     if (!wallet) return showToast('Connect wallet first', 'error');
     try {
-      const amount = parseR68(borrowAmount);
+      const amount = parseUSDC(borrowAmount);
       const contracts = getContracts(wallet.signer);
 
       showToast('Borrowing...', 'info');
       const tx = await contracts.lending.borrow(offerId, amount, parseInt(borrowDays));
       await tx.wait();
 
-      logActivity('lending', 'Borrowed R68 with token collateral');
+      logActivity('lending', 'Borrowed USDC with token collateral');
       showToast('Loan created!', 'success');
       setBorrowAmount('');
       loadData();
@@ -232,11 +232,11 @@ export default function Lending({ wallet, showToast }) {
       <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
         <div className="stat-card">
           <div className="stat-label">Pool Liquidity</div>
-          <div className="stat-value success">{poolLiquidity} R68</div>
+          <div className="stat-value success">{poolLiquidity} USDC</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Your R68 Collateral</div>
-          <div className="stat-value info">{collateral} R68</div>
+          <div className="stat-label">Your USDC Collateral</div>
+          <div className="stat-value info">{collateral} USDC</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Spaces for Collateral</div>
@@ -253,7 +253,7 @@ export default function Lending({ wallet, showToast }) {
         {[
           { key: 'offers', label: '📄 Offers' },
           { key: 'lend', label: '💰 Lend' },
-          { key: 'borrow', label: '🏦 R68 Borrow' },
+          { key: 'borrow', label: '🏦 USDC Borrow' },
           { key: 'nftBorrow', label: '🏠 NFT Borrow' },
           { key: 'myLoans', label: '📋 My Loans' },
         ].map((t) => (
@@ -291,12 +291,12 @@ export default function Lending({ wallet, showToast }) {
                   {offers.map((o) => (
                     <tr key={o.id}>
                       <td>{o.lender.slice(0, 6)}...{o.lender.slice(-4)}</td>
-                      <td>{formatR68(o.remaining)} R68</td>
+                      <td>{formatUSDC(o.remaining)} USDC</td>
                       <td>{(o.rateBps / 100).toFixed(1)}% APR</td>
                       <td>{o.minDuration}-{o.maxDuration} days</td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button className="btn btn-primary btn-sm" onClick={() => setTab('borrow')}>R68</button>
+                          <button className="btn btn-primary btn-sm" onClick={() => setTab('borrow')}>USDC</button>
                           <button className="btn btn-success btn-sm" onClick={() => setTab('nftBorrow')}>NFT</button>
                         </div>
                       </td>
@@ -315,7 +315,7 @@ export default function Lending({ wallet, showToast }) {
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: '1rem' }}>Create Lending Offer</h3>
             <div className="form-group">
-              <label className="form-label">Amount (R68)</label>
+              <label className="form-label">Amount (USDC)</label>
               <input className="form-input" type="number" value={lendAmount} onChange={(e) => setLendAmount(e.target.value)} placeholder="Amount to lend" />
             </div>
             <div className="form-group">
@@ -338,9 +338,9 @@ export default function Lending({ wallet, showToast }) {
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: '1rem' }}>How Lending Works</h3>
             <ul style={{ lineHeight: 2, color: 'var(--text-secondary)', fontSize: '0.9rem', paddingLeft: '1.25rem' }}>
-              <li>You deposit R68 tokens into a lending offer</li>
+              <li>You deposit USDC tokens into a lending offer</li>
               <li>Set your interest rate (5-30% APR)</li>
-              <li>Borrowers use R68 collateral (150%) or NFT collateral (50% LTV)</li>
+              <li>Borrowers use USDC collateral (150%) or NFT collateral (50% LTV)</li>
               <li>Interest accrues linearly over the loan period</li>
               <li>If the borrower defaults, you get their collateral or NFT</li>
               <li>Cancel your offer anytime if not fully borrowed</li>
@@ -349,22 +349,22 @@ export default function Lending({ wallet, showToast }) {
         </div>
       )}
 
-      {/* R68 Borrow Tab */}
+      {/* USDC Borrow Tab */}
       {tab === 'borrow' && (
         <div className="grid-2">
           <div className="card">
-            <h3 className="card-title" style={{ marginBottom: '1rem' }}>Deposit R68 Collateral</h3>
+            <h3 className="card-title" style={{ marginBottom: '1rem' }}>Deposit USDC Collateral</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Current collateral: <strong style={{ color: 'var(--info)' }}>{collateral} R68</strong> (150% required)
+              Current collateral: <strong style={{ color: 'var(--info)' }}>{collateral} USDC</strong> (150% required)
             </p>
             <div className="form-group">
-              <label className="form-label">Amount (R68)</label>
+              <label className="form-label">Amount (USDC)</label>
               <input className="form-input" type="number" value={collateralAmount} onChange={(e) => setCollateralAmount(e.target.value)} placeholder="Collateral amount" />
             </div>
             <button className="btn btn-success btn-full" onClick={handleDepositCollateral}>Deposit Collateral</button>
           </div>
           <div className="card">
-            <h3 className="card-title" style={{ marginBottom: '1rem' }}>Borrow with R68 Collateral</h3>
+            <h3 className="card-title" style={{ marginBottom: '1rem' }}>Borrow with USDC Collateral</h3>
             {offers.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No offers available to borrow from.</p>
             ) : (
@@ -374,13 +374,13 @@ export default function Lending({ wallet, showToast }) {
                   <select className="form-select" id="offerSelect">
                     {offers.map((o) => (
                       <option key={o.id} value={o.id}>
-                        #{o.id} — {formatR68(o.remaining)} R68 @ {(o.rateBps / 100).toFixed(1)}% APR
+                        #{o.id} — {formatUSDC(o.remaining)} USDC @ {(o.rateBps / 100).toFixed(1)}% APR
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Borrow Amount (R68)</label>
+                  <label className="form-label">Borrow Amount (USDC)</label>
                   <input className="form-input" type="number" value={borrowAmount} onChange={(e) => setBorrowAmount(e.target.value)} placeholder="Amount to borrow" />
                 </div>
                 <div className="form-group">
@@ -390,7 +390,7 @@ export default function Lending({ wallet, showToast }) {
                 <button className="btn btn-primary btn-full" onClick={() => {
                   const select = document.getElementById('offerSelect');
                   handleBorrow(parseInt(select.value));
-                }}>Borrow with R68 Collateral</button>
+                }}>Borrow with USDC Collateral</button>
               </>
             )}
           </div>
@@ -403,7 +403,7 @@ export default function Lending({ wallet, showToast }) {
           <div className="card">
             <h3 className="card-title" style={{ marginBottom: '1rem' }}>🏠 Borrow with NFT Collateral</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Lock a living space NFT as collateral. Borrow up to <strong>50% of its R68 value</strong>. Your NFT is returned when you repay.
+              Lock a living space NFT as collateral. Borrow up to <strong>50% of its USDC value</strong>. Your NFT is returned when you repay.
             </p>
             {!wallet ? (
               <p style={{ color: 'var(--text-muted)' }}>Connect wallet to borrow.</p>
@@ -419,7 +419,7 @@ export default function Lending({ wallet, showToast }) {
                     <option value="">— Choose a space —</option>
                     {mySpaces.map((s) => (
                       <option key={s.id} value={s.id}>
-                        #{s.id} {s.name} ({SPACE_TYPES[s.spaceType]}) — borrows up to {formatR68(s.value / 2n)} R68
+                        #{s.id} {s.name} ({SPACE_TYPES[s.spaceType]}) — borrows up to {formatUSDC(s.value / 2n)} USDC
                       </option>
                     ))}
                   </select>
@@ -429,7 +429,7 @@ export default function Lending({ wallet, showToast }) {
                   <select className="form-select" id="nftOfferSelect">
                     {offers.map((o) => (
                       <option key={o.id} value={o.id}>
-                        #{o.id} — {formatR68(o.remaining)} R68 @ {(o.rateBps / 100).toFixed(1)}% APR
+                        #{o.id} — {formatUSDC(o.remaining)} USDC @ {(o.rateBps / 100).toFixed(1)}% APR
                       </option>
                     ))}
                   </select>
@@ -449,10 +449,10 @@ export default function Lending({ wallet, showToast }) {
             <h3 className="card-title" style={{ marginBottom: '1rem' }}>NFT Collateral Info</h3>
             <ul style={{ lineHeight: 2, color: 'var(--text-secondary)', fontSize: '0.9rem', paddingLeft: '1.25rem' }}>
               <li>Your living space NFT is transferred to the lending pool</li>
-              <li>You can borrow up to 50% of the space's R68 value</li>
+              <li>You can borrow up to 50% of the space's USDC value</li>
               <li>Repay principal + interest to get your NFT back</li>
               <li>If you default, the lender seizes your NFT</li>
-              <li>No additional R68 collateral required</li>
+              <li>No additional USDC collateral required</li>
               <li>Space status changes to "Collateralized"</li>
             </ul>
           </div>
@@ -493,15 +493,15 @@ export default function Lending({ wallet, showToast }) {
                           {l.isMine ? 'Borrower' : 'Lender'}
                         </span>
                       </td>
-                      <td>{formatR68(l.principal)} R68</td>
+                      <td>{formatUSDC(l.principal)} USDC</td>
                       <td>
                         {l.nftCollateral !== null ? (
                           <span className="badge badge-accent">🏠 NFT #{l.nftCollateral}</span>
                         ) : (
-                          <span>{formatR68(l.collateralAmt)} R68</span>
+                          <span>{formatUSDC(l.collateralAmt)} USDC</span>
                         )}
                       </td>
-                      <td>{formatR68(l.interest)} R68</td>
+                      <td>{formatUSDC(l.interest)} USDC</td>
                       <td>{(l.rateBps / 100).toFixed(1)}%</td>
                       <td>
                         {l.repaid ? (

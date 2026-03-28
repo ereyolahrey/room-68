@@ -1,5 +1,5 @@
 // Minimal ABIs for frontend interaction
-export const Room68TokenABI = [
+export const ERC20ABI = [
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function decimals() view returns (uint8)",

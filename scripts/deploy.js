@@ -1,61 +1,58 @@
 const hre = require("hardhat");
 
+// ARC Testnet token addresses
+const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
+const EURC_ADDRESS = "0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a";
+
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying Room 68 contracts with account:", deployer.address);
 
   const balance = await hre.ethers.provider.getBalance(deployer.address);
   console.log("Account balance:", hre.ethers.formatEther(balance), "USDC");
+  console.log("Payment token (USDC):", USDC_ADDRESS);
 
-  // 1. Deploy Room68Token
-  console.log("\n--- Deploying Room68Token ---");
-  const Room68Token = await hre.ethers.getContractFactory("Room68Token");
-  const r68Token = await Room68Token.deploy();
-  await r68Token.waitForDeployment();
-  const r68Address = await r68Token.getAddress();
-  console.log("Room68Token deployed to:", r68Address);
-
-  // 2. Deploy LivingSpaceNFT (requires r68Token for rental payments)
+  // 1. Deploy LivingSpaceNFT (uses USDC for rental payments)
   console.log("\n--- Deploying LivingSpaceNFT ---");
   const LivingSpaceNFT = await hre.ethers.getContractFactory("LivingSpaceNFT");
-  const spaceNFT = await LivingSpaceNFT.deploy(r68Address);
+  const spaceNFT = await LivingSpaceNFT.deploy(USDC_ADDRESS);
   await spaceNFT.waitForDeployment();
   const nftAddress = await spaceNFT.getAddress();
   console.log("LivingSpaceNFT deployed to:", nftAddress);
 
-  // 3. Deploy LivingSpaceMarket
+  // 2. Deploy LivingSpaceMarket
   console.log("\n--- Deploying LivingSpaceMarket ---");
   const LivingSpaceMarket = await hre.ethers.getContractFactory("LivingSpaceMarket");
-  const market = await LivingSpaceMarket.deploy(r68Address, nftAddress);
+  const market = await LivingSpaceMarket.deploy(USDC_ADDRESS, nftAddress);
   await market.waitForDeployment();
   const marketAddress = await market.getAddress();
   console.log("LivingSpaceMarket deployed to:", marketAddress);
 
-  // 4. Deploy LendingPool (requires spaceNFT for NFT collateral)
+  // 3. Deploy LendingPool (uses USDC + spaceNFT for NFT collateral)
   console.log("\n--- Deploying LendingPool ---");
   const LendingPool = await hre.ethers.getContractFactory("LendingPool");
-  const lendingPool = await LendingPool.deploy(r68Address, nftAddress);
+  const lendingPool = await LendingPool.deploy(USDC_ADDRESS, nftAddress);
   await lendingPool.waitForDeployment();
   const lendingAddress = await lendingPool.getAddress();
   console.log("LendingPool deployed to:", lendingAddress);
 
-  // 5. Deploy CompetitionManager
+  // 4. Deploy CompetitionManager
   console.log("\n--- Deploying CompetitionManager ---");
   const CompetitionManager = await hre.ethers.getContractFactory("CompetitionManager");
-  const competition = await CompetitionManager.deploy(r68Address, nftAddress);
+  const competition = await CompetitionManager.deploy(USDC_ADDRESS, nftAddress);
   await competition.waitForDeployment();
   const competitionAddress = await competition.getAddress();
   console.log("CompetitionManager deployed to:", competitionAddress);
 
-  // 6. Deploy SwapBridge
+  // 5. Deploy SwapBridge
   console.log("\n--- Deploying SwapBridge ---");
   const SwapBridge = await hre.ethers.getContractFactory("SwapBridge");
-  const swapBridge = await SwapBridge.deploy(r68Address);
+  const swapBridge = await SwapBridge.deploy();
   await swapBridge.waitForDeployment();
   const swapAddress = await swapBridge.getAddress();
   console.log("SwapBridge deployed to:", swapAddress);
 
-  // 7. Configure permissions
+  // 6. Configure permissions
   console.log("\n--- Configuring permissions ---");
 
   await spaceNFT.authorizeMarket(marketAddress);
@@ -67,10 +64,14 @@ async function main() {
   await spaceNFT.authorizeMarket(lendingAddress);
   console.log("LendingPool authorized on LivingSpaceNFT");
 
-  await r68Token.addMinter(competitionAddress);
-  console.log("CompetitionManager added as R68 minter");
+  // Register supported tokens on SwapBridge
+  await swapBridge.registerToken(USDC_ADDRESS, "USDC");
+  console.log("USDC registered on SwapBridge");
 
-  // 8. Mint initial living spaces (20 of 68 max — rest earned through competitions)
+  await swapBridge.registerToken(EURC_ADDRESS, "EURC");
+  console.log("EURC registered on SwapBridge");
+
+  // 7. Mint initial living spaces (20 of 68 max — rest earned through competitions)
   console.log("\n--- Minting initial living spaces (20 of 68 max) ---");
   const initialSpaces = [
     { name: "Studio Alpha", type: 0, value: "100" },
@@ -105,7 +106,7 @@ async function main() {
       hre.ethers.parseEther(s.value),
       `ipfs://room68/space/${i}`
     );
-    console.log(`  Minted: ${s.name} (${typeNames[s.type]}, value: ${s.value} R68)`);
+    console.log(`  Minted: ${s.name} (${typeNames[s.type]}, value: ${s.value} USDC)`);
   }
 
   const remaining = await spaceNFT.remainingSpaces();
@@ -116,7 +117,8 @@ async function main() {
   console.log("\n========================================");
   console.log("  ROOM 68 DEPLOYMENT COMPLETE");
   console.log("========================================");
-  console.log(`  Room68Token:       ${r68Address}`);
+  console.log(`  USDC (payment):    ${USDC_ADDRESS}`);
+  console.log(`  EURC (swap):       ${EURC_ADDRESS}`);
   console.log(`  LivingSpaceNFT:    ${nftAddress}`);
   console.log(`  LivingSpaceMarket: ${marketAddress}`);
   console.log(`  LendingPool:       ${lendingAddress}`);
@@ -124,6 +126,7 @@ async function main() {
   console.log(`  SwapBridge:        ${swapAddress}`);
   console.log("========================================");
   console.log("  Max Supply: 68 living spaces");
+  console.log("  Currency: USDC / EURC on ARC Testnet");
   console.log("  Network: ARC Testnet (Chain ID: 5042002)");
   console.log("  Explorer: https://testnet.arcscan.app");
   console.log("========================================\n");
@@ -134,7 +137,8 @@ async function main() {
     chainId: 5042002,
     deployer: deployer.address,
     contracts: {
-      Room68Token: r68Address,
+      USDC: USDC_ADDRESS,
+      EURC: EURC_ADDRESS,
       LivingSpaceNFT: nftAddress,
       LivingSpaceMarket: marketAddress,
       LendingPool: lendingAddress,

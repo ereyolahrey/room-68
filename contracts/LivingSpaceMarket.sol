@@ -3,13 +3,13 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Room68Token.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./LivingSpaceNFT.sol";
 
 /// @title LivingSpaceMarket - Marketplace for buying, selling, and bidding on living spaces
 /// @notice Agents can list spaces for sale, buy outright, or make down payments with proof of reserves
 contract LivingSpaceMarket is Ownable, ReentrancyGuard {
-    Room68Token public r68Token;
+    IERC20 public paymentToken;
     LivingSpaceNFT public spaceNFT;
 
     uint256 public platformFeeBps = 250; // 2.5% fee
@@ -49,8 +49,8 @@ contract LivingSpaceMarket is Ownable, ReentrancyGuard {
     event DownPaymentCompleted(uint256 indexed dpId, uint256 indexed tokenId, address buyer);
     event DownPaymentDefaulted(uint256 indexed dpId, uint256 indexed tokenId);
 
-    constructor(address _r68Token, address _spaceNFT) Ownable(msg.sender) {
-        r68Token = Room68Token(_r68Token);
+    constructor(address _paymentToken, address _spaceNFT) Ownable(msg.sender) {
+        paymentToken = IERC20(_paymentToken);
         spaceNFT = LivingSpaceNFT(_spaceNFT);
     }
 
@@ -109,9 +109,9 @@ contract LivingSpaceMarket is Ownable, ReentrancyGuard {
         listing.active = false;
 
         // Transfer payment
-        require(r68Token.transferFrom(msg.sender, listing.seller, sellerProceeds), "Payment failed");
+        require(paymentToken.transferFrom(msg.sender, listing.seller, sellerProceeds), "Payment failed");
         if (fee > 0) {
-            require(r68Token.transferFrom(msg.sender, owner(), fee), "Fee transfer failed");
+            require(paymentToken.transferFrom(msg.sender, owner(), fee), "Fee transfer failed");
         }
 
         // Transfer NFT to buyer
@@ -132,16 +132,16 @@ contract LivingSpaceMarket is Ownable, ReentrancyGuard {
         require(initialPayment >= minDown, "Min 20% down payment");
 
         // Proof of reserves: buyer must hold at least 50% of total price
-        require(r68Token.balanceOf(msg.sender) >= listing.price / 2, "Insufficient reserves");
+        require(paymentToken.balanceOf(msg.sender) >= listing.price / 2, "Insufficient reserves");
 
         listing.active = false;
         spaceNFT.setSpaceStatus(tokenId, LivingSpaceNFT.SpaceStatus.Locked);
 
         // Take initial payment
         uint256 fee = (initialPayment * platformFeeBps) / 10000;
-        require(r68Token.transferFrom(msg.sender, listing.seller, initialPayment - fee), "Payment failed");
+        require(paymentToken.transferFrom(msg.sender, listing.seller, initialPayment - fee), "Payment failed");
         if (fee > 0) {
-            require(r68Token.transferFrom(msg.sender, owner(), fee), "Fee failed");
+            require(paymentToken.transferFrom(msg.sender, owner(), fee), "Fee failed");
         }
 
         uint256 dpId = nextDownPaymentId++;
@@ -171,9 +171,9 @@ contract LivingSpaceMarket is Ownable, ReentrancyGuard {
         uint256 payment = amount > remaining ? remaining : amount;
 
         uint256 fee = (payment * platformFeeBps) / 10000;
-        require(r68Token.transferFrom(msg.sender, listings[dp.tokenId].seller, payment - fee), "Payment failed");
+        require(paymentToken.transferFrom(msg.sender, listings[dp.tokenId].seller, payment - fee), "Payment failed");
         if (fee > 0) {
-            require(r68Token.transferFrom(msg.sender, owner(), fee), "Fee failed");
+            require(paymentToken.transferFrom(msg.sender, owner(), fee), "Fee failed");
         }
 
         dp.amountPaid += payment;
