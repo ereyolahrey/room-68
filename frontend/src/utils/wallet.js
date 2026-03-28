@@ -9,24 +9,25 @@ import {
   SwapBridgeABI,
 } from '../contracts/abis.js';
 
+const WALLET_KEY = 'room68_wallet_connected';
+const ACTIVITY_KEY = 'room68_activity_log';
+const MAX_ACTIVITIES = 500;
+
 export async function connectWallet() {
   if (!window.ethereum) {
     throw new Error('MetaMask not found. Please install MetaMask.');
   }
 
-  // Request accounts
   const accounts = await window.ethereum.request({
     method: 'eth_requestAccounts',
   });
 
-  // Switch to ARC Testnet
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: ARC_TESTNET.chainIdHex }],
     });
   } catch (switchError) {
-    // Chain not added yet — add it
     if (switchError.code === 4902) {
       await window.ethereum.request({
         method: 'wallet_addEthereumChain',
@@ -48,7 +49,41 @@ export async function connectWallet() {
   const provider = new ethers.BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
 
+  localStorage.setItem(WALLET_KEY, 'true');
+  logActivity('wallet', 'Wallet connected', { address: accounts[0] });
+
   return { provider, signer, address: accounts[0] };
+}
+
+export async function reconnectWallet() {
+  if (!window.ethereum || localStorage.getItem(WALLET_KEY) !== 'true') return null;
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (accounts.length === 0) return null;
+
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (chainId !== ARC_TESTNET.chainIdHex) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: ARC_TESTNET.chainIdHex }],
+        });
+      } catch {
+        return null;
+      }
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    return { provider, signer, address: accounts[0] };
+  } catch {
+    return null;
+  }
+}
+
+export function disconnectWallet() {
+  localStorage.removeItem(WALLET_KEY);
+  logActivity('wallet', 'Wallet disconnected');
 }
 
 export function getReadProvider() {
@@ -83,4 +118,32 @@ export function parseR68(value) {
 
 export function getExplorerUrl(type, hash) {
   return `${ARC_TESTNET.explorer}/${type}/${hash}`;
+}
+
+// --- Activity Log ---
+export function logActivity(category, message, data = {}) {
+  try {
+    const activities = getActivities();
+    activities.unshift({
+      id: Date.now(),
+      category,
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+    if (activities.length > MAX_ACTIVITIES) activities.length = MAX_ACTIVITIES;
+    localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activities));
+  } catch { /* storage full — ignore */ }
+}
+
+export function getActivities() {
+  try {
+    return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function clearActivities() {
+  localStorage.removeItem(ACTIVITY_KEY);
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68 } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatR68, parseR68, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
@@ -128,6 +128,7 @@ export default function Lending({ wallet, showToast }) {
       const tx = await contracts.lending.depositCollateral(amount);
       await tx.wait();
 
+      logActivity('lending', 'Deposited R68 collateral');
       showToast('Collateral deposited!', 'success');
       setCollateralAmount('');
       loadData();
@@ -151,6 +152,7 @@ export default function Lending({ wallet, showToast }) {
       );
       await tx.wait();
 
+      logActivity('lending', 'Created lending offer');
       showToast('Lending offer created!', 'success');
       setLendAmount('');
       loadData();
@@ -169,6 +171,7 @@ export default function Lending({ wallet, showToast }) {
       const tx = await contracts.lending.borrow(offerId, amount, parseInt(borrowDays));
       await tx.wait();
 
+      logActivity('lending', 'Borrowed R68 with token collateral');
       showToast('Loan created!', 'success');
       setBorrowAmount('');
       loadData();
@@ -191,6 +194,7 @@ export default function Lending({ wallet, showToast }) {
       const tx = await contracts.lending.borrowWithNFT(offerId, nftId, parseInt(nftBorrowDays));
       await tx.wait();
 
+      logActivity('lending', `Borrowed with NFT #${nftId} as collateral`);
       showToast('NFT-backed loan created! Space locked as collateral.', 'success');
       setSelectedNFT('');
       loadData();
@@ -214,6 +218,7 @@ export default function Lending({ wallet, showToast }) {
       const tx = await contracts.lending.repayLoan(loanId);
       await tx.wait();
 
+      logActivity('lending', `Repaid loan #${loanId}`);
       showToast('Loan repaid! Collateral returned.', 'success');
       loadData();
     } catch (err) {

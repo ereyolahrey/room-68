@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { connectWallet, shortenAddress, getContracts, formatR68, getReadProvider } from './utils/wallet.js';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { connectWallet, reconnectWallet, disconnectWallet, shortenAddress, getContracts, formatR68, getReadProvider, logActivity } from './utils/wallet.js';
 import { ARC_TESTNET, CONTRACTS } from './contracts/config.js';
 import Dashboard from './pages/Dashboard.jsx';
 import Marketplace from './pages/Marketplace.jsx';
@@ -7,6 +7,7 @@ import Competitions from './pages/Competitions.jsx';
 import Lending from './pages/Lending.jsx';
 import SwapBridgePage from './pages/SwapBridge.jsx';
 import MySpaces from './pages/MySpaces.jsx';
+import ActivityLog from './pages/ActivityLog.jsx';
 
 const PAGES = {
   dashboard: { label: 'Dashboard', icon: '📊', component: Dashboard },
@@ -15,6 +16,7 @@ const PAGES = {
   competitions: { label: 'Competitions', icon: '🏆', component: Competitions },
   lending: { label: 'Lending', icon: '💰', component: Lending },
   swap: { label: 'Swap & Bridge', icon: '🔄', component: SwapBridgePage },
+  activity: { label: 'Activity', icon: '📜', component: ActivityLog },
 };
 
 const NAV_SECTIONS = [
@@ -22,6 +24,7 @@ const NAV_SECTIONS = [
   { title: 'Living Spaces', items: ['marketplace', 'myspaces'] },
   { title: 'Compete & Earn', items: ['competitions'] },
   { title: 'Finance', items: ['lending', 'swap'] },
+  { title: 'Account', items: ['activity'] },
 ];
 
 export default function App() {
@@ -29,10 +32,22 @@ export default function App() {
   const [wallet, setWallet] = useState(null);
   const [balance, setBalance] = useState('0');
   const [toast, setToast] = useState(null);
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const walletMenuRef = useRef(null);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  const loadBalance = useCallback(async (w) => {
+    if (CONTRACTS.Room68Token && w) {
+      try {
+        const contracts = getContracts(w.signer);
+        const bal = await contracts.token.balanceOf(w.address);
+        setBalance(formatR68(bal));
+      } catch { setBalance('0'); }
+    }
   }, []);
 
   const handleConnect = useCallback(async () => {
@@ -40,24 +55,38 @@ export default function App() {
       const w = await connectWallet();
       setWallet(w);
       showToast('Wallet connected to ARC Testnet!', 'success');
-
-      // Load R68 balance
-      if (CONTRACTS.Room68Token) {
-        const contracts = getContracts(w.signer);
-        const bal = await contracts.token.balanceOf(w.address);
-        setBalance(formatR68(bal));
-      }
+      loadBalance(w);
     } catch (err) {
       showToast(err.message, 'error');
     }
+  }, [showToast, loadBalance]);
+
+  const handleDisconnect = useCallback(() => {
+    disconnectWallet();
+    setWallet(null);
+    setBalance('0');
+    setWalletMenuOpen(false);
+    showToast('Wallet disconnected', 'info');
   }, [showToast]);
+
+  // Auto-reconnect on page load
+  useEffect(() => {
+    reconnectWallet().then((w) => {
+      if (w) {
+        setWallet(w);
+        loadBalance(w);
+      }
+    });
+  }, [loadBalance]);
 
   // Listen for account/chain changes
   useEffect(() => {
     if (!window.ethereum) return;
     const handleAccountsChanged = (accounts) => {
       if (accounts.length === 0) {
+        disconnectWallet();
         setWallet(null);
+        setBalance('0');
       } else {
         handleConnect();
       }
@@ -68,6 +97,24 @@ export default function App() {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
     };
   }, [handleConnect]);
+
+  // Close wallet menu on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (walletMenuRef.current && !walletMenuRef.current.contains(e.target)) {
+        setWalletMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Refresh balance every 30s when connected
+  useEffect(() => {
+    if (!wallet) return;
+    const interval = setInterval(() => loadBalance(wallet), 30000);
+    return () => clearInterval(interval);
+  }, [wallet, loadBalance]);
 
   const PageComponent = PAGES[page]?.component || Dashboard;
 
@@ -105,7 +152,10 @@ export default function App() {
               Connected
             </div>
             <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{shortenAddress(wallet.address)}</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>{balance} R68</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginBottom: '0.5rem' }}>{balance} R68</div>
+            <button className="btn btn-sm btn-secondary" style={{ width: '100%', fontSize: '0.75rem' }} onClick={handleDisconnect}>
+              Disconnect
+            </button>
           </div>
         )}
       </aside>
@@ -114,16 +164,48 @@ export default function App() {
       <main className="main-content">
         <div className="header">
           <h2>{PAGES[page]?.icon} {PAGES[page]?.label}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <a href={ARC_TESTNET.faucet} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">
-              🚰 Get Testnet USDC
+              🚰 Faucet
             </a>
-            <button
-              className={`wallet-btn ${wallet ? 'connected' : ''}`}
-              onClick={handleConnect}
-            >
-              {wallet ? `${shortenAddress(wallet.address)}` : '🔗 Connect Wallet'}
-            </button>
+            {!wallet ? (
+              <button className="wallet-btn" onClick={handleConnect}>
+                🔗 Connect Wallet
+              </button>
+            ) : (
+              <div style={{ position: 'relative' }} ref={walletMenuRef}>
+                <button
+                  className="wallet-btn connected"
+                  onClick={() => setWalletMenuOpen(!walletMenuOpen)}
+                >
+                  {shortenAddress(wallet.address)} ▾
+                </button>
+                {walletMenuOpen && (
+                  <div style={{
+                    position: 'absolute', right: 0, top: '100%', marginTop: '0.5rem',
+                    background: 'var(--bg-card)', border: '1px solid var(--border)',
+                    borderRadius: '8px', overflow: 'hidden', minWidth: '200px', zIndex: 200,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                  }}>
+                    <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', fontSize: '0.85rem' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Balance</div>
+                      <div style={{ color: 'var(--accent)', fontWeight: 600 }}>{balance} R68</div>
+                    </div>
+                    <a href={`${ARC_TESTNET.explorer}/address/${wallet.address}`} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'block', padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}
+                      onClick={() => setWalletMenuOpen(false)}>
+                      View on Explorer ↗
+                    </a>
+                    <div
+                      style={{ padding: '0.6rem 1rem', fontSize: '0.85rem', color: 'var(--danger)', cursor: 'pointer', borderTop: '1px solid var(--border)' }}
+                      onClick={handleDisconnect}
+                    >
+                      Disconnect Wallet
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

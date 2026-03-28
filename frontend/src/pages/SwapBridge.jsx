@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68 } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatR68, parseR68, logActivity } from '../utils/wallet.js';
 import { CONTRACTS, ARC_TESTNET } from '../contracts/config.js';
 
 export default function SwapBridgePage({ wallet, showToast }) {
@@ -68,6 +68,7 @@ export default function SwapBridgePage({ wallet, showToast }) {
       );
       await tx.wait();
 
+      logActivity('swap', `Created swap order: ${fromAmount} → ${toAmount} R68`);
       showToast('Swap order created!', 'success');
       setFromAmount('');
       setToAmount('');
@@ -90,6 +91,7 @@ export default function SwapBridgePage({ wallet, showToast }) {
       const tx = await contracts.swap.fillSwapOrder(orderId);
       await tx.wait();
 
+      logActivity('swap', `Filled swap order #${orderId}`);
       showToast('Swap completed!', 'success');
       loadOrders();
     } catch (err) {
@@ -115,6 +117,7 @@ export default function SwapBridgePage({ wallet, showToast }) {
       );
       await tx.wait();
 
+      logActivity('swap', `Bridged ${bridgeAmount} R68 to ${bridgeChain}`);
       showToast(`Bridge initiated to ${bridgeChain}!`, 'success');
       setBridgeAmount('');
     } catch (err) {

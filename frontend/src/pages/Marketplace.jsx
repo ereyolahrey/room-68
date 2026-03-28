@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68, getExplorerUrl } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatR68, parseR68, getExplorerUrl, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
@@ -60,6 +60,7 @@ export default function Marketplace({ wallet, showToast }) {
       const tx = await contracts.market.buySpace(tokenId);
       const receipt = await tx.wait();
 
+      logActivity('marketplace', `Purchased space #${tokenId}`, { txHash: receipt.hash });
       showToast(`Space purchased! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       loadListings();
     } catch (err) {
@@ -81,6 +82,7 @@ export default function Marketplace({ wallet, showToast }) {
       const tx = await contracts.market.startDownPayment(tokenId, initialAmount, parseInt(dpDays));
       const receipt = await tx.wait();
 
+      logActivity('marketplace', `Started down payment on space #${tokenId}`, { txHash: receipt.hash });
       showToast(`Down payment started! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       setBuyModal(null);
       loadListings();

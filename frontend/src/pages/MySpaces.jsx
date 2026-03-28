@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, formatR68, parseR68 } from '../utils/wallet.js';
+import { getContracts, formatR68, parseR68, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
@@ -120,6 +120,7 @@ export default function MySpaces({ wallet, showToast }) {
       const tx = await contracts.market.listSpace(tokenId, price);
       const receipt = await tx.wait();
 
+      logActivity('marketplace', `Listed space #${tokenId} for sale`, { txHash: receipt.hash });
       showToast(`Space listed! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       setListModal(null);
       setListPrice('');
@@ -142,6 +143,7 @@ export default function MySpaces({ wallet, showToast }) {
         parseInt(rentMaxMonths)
       );
       await tx.wait();
+      logActivity('rental', `Listed space #${tokenId} for rent`);
       showToast('Space listed for rent!', 'success');
       setRentModal(null);
       setRentPrice('');
@@ -163,6 +165,7 @@ export default function MySpaces({ wallet, showToast }) {
       showToast('Renting space...', 'info');
       const tx = await contracts.spaceNFT.rentSpace(tokenId, parseInt(rentMonths));
       await tx.wait();
+      logActivity('rental', `Rented space #${tokenId}`);
       showToast('Space rented!', 'success');
       loadMySpaces();
       loadRentalListings();
@@ -180,6 +183,7 @@ export default function MySpaces({ wallet, showToast }) {
       showToast('Paying rent...', 'info');
       const tx = await contracts.spaceNFT.payRent(rentalId);
       await tx.wait();
+      logActivity('rental', `Paid rent for rental #${rentalId}`);
       showToast('Rent paid!', 'success');
       loadMySpaces();
     } catch (err) {
@@ -194,6 +198,7 @@ export default function MySpaces({ wallet, showToast }) {
       showToast('Ending rental...', 'info');
       const tx = await contracts.spaceNFT.endRental(rentalId);
       await tx.wait();
+      logActivity('rental', `Ended rental #${rentalId}`);
       showToast('Rental ended! Deposit returned.', 'success');
       loadMySpaces();
     } catch (err) {

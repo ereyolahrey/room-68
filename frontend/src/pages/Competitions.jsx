@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getContracts, getReadProvider, formatR68, parseR68 } from '../utils/wallet.js';
+import { getContracts, getReadProvider, formatR68, parseR68, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
 
 const COMP_TYPES = ['Chess', 'Crossword', 'Scrabble', 'Dancing', 'Music', 'Market Insight'];
@@ -76,6 +76,7 @@ export default function Competitions({ wallet, showToast }) {
       const tx = await contracts.competition.joinCompetition(compId);
       const receipt = await tx.wait();
 
+      logActivity('competition', `Joined competition #${compId}`, { txHash: receipt.hash });
       showToast(`Joined! Entry fee deposited into prize pool. Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       loadCompetitions();
     } catch (err) {
@@ -91,6 +92,7 @@ export default function Competitions({ wallet, showToast }) {
       showToast('Submitting solution...', 'info');
       const tx = await contracts.competition.submitSolution(compId, solution);
       const receipt = await tx.wait();
+      logActivity('competition', `Submitted solution for competition #${compId}`, { txHash: receipt.hash });
       showToast(`Solution submitted! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       setSolution('');
       setSelectedComp(null);
