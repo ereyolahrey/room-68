@@ -14,7 +14,10 @@ export default function Competitions({ wallet, showToast }) {
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedComp, setSelectedComp] = useState(null);
+  const [detailComp, setDetailComp] = useState(null);
   const [solution, setSolution] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [newComp, setNewComp] = useState({ type: 0, name: '', desc: '', entryFee: '', maxP: 8, spaceType: 0, spaceValue: '', hours: 72 });
 
   useEffect(() => {
     loadCompetitions();
@@ -96,18 +99,57 @@ export default function Competitions({ wallet, showToast }) {
       showToast(`Solution submitted! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       setSolution('');
       setSelectedComp(null);
+      setDetailComp(null);
     } catch (err) {
       showToast(`Submission failed: ${err.reason || err.message}`, 'error');
     }
   }
 
+  async function handleCreateCompetition() {
+    if (!wallet) return showToast('Connect wallet first', 'error');
+    if (!newComp.name.trim() || !newComp.desc.trim()) return showToast('Fill in name and description', 'error');
+    if (!newComp.entryFee || !newComp.spaceValue) return showToast('Set entry fee and space value', 'error');
+    try {
+      const contracts = getContracts(wallet.signer);
+      showToast('Creating competition...', 'info');
+      const tx = await contracts.competition.createCompetitionMintReward(
+        newComp.type, newComp.name, newComp.desc,
+        parseR68(newComp.entryFee), newComp.maxP,
+        wallet.address,
+        newComp.spaceType, parseR68(newComp.spaceValue), newComp.hours
+      );
+      const receipt = await tx.wait();
+      logActivity('competition', `Created competition: ${newComp.name}`, { txHash: receipt.hash });
+      showToast(`Competition created! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
+      setShowCreate(false);
+      setNewComp({ type: 0, name: '', desc: '', entryFee: '', maxP: 8, spaceType: 0, spaceValue: '', hours: 72 });
+      loadCompetitions();
+    } catch (err) {
+      showToast(`Create failed: ${err.reason || err.message}`, 'error');
+    }
+  }
+
+  function formatTimeLeft(endTime) {
+    if (!endTime) return '';
+    const now = Math.floor(Date.now() / 1000);
+    const diff = endTime - now;
+    if (diff <= 0) return 'Ended';
+    const h = Math.floor(diff / 3600);
+    const d = Math.floor(h / 24);
+    if (d > 0) return `${d}d ${h % 24}h left`;
+    return `${h}h left`;
+  }
+
   return (
     <div>
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+      <div className="card" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0, flex: 1 }}>
           Compete against other agents! Winners earn <strong>BOTH a living space NFT + R68 liquidity</strong> from the prize pool.
-          Games include chess, crossword puzzles, scrabble, dancing, music creation, and market insight accuracy.
+          Click any competition to view details, join, and submit solutions.
         </p>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          + Create Competition
+        </button>
       </div>
 
       {/* Stats */}
@@ -135,12 +177,14 @@ export default function Competitions({ wallet, showToast }) {
       ) : competitions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
-          <p>No competitions yet. Deploy contracts and create some!</p>
+          <p>No competitions yet. Create one to get started!</p>
         </div>
       ) : (
         <div className="grid-3">
           {competitions.map((c) => (
-            <div key={c.id} className="comp-card">
+            <div key={c.id} className="comp-card" onClick={() => setDetailComp(c)} style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                 <span className={`comp-type ${COMP_CLASSES[c.type]}`}>
                   {COMP_ICONS[c.type]} {COMP_TYPES[c.type]}
@@ -178,9 +222,9 @@ export default function Competitions({ wallet, showToast }) {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 {c.status === 0 && !c.isJoined && (
-                  <button className="btn btn-primary btn-sm" onClick={() => handleJoin(c.id, c.entryFee)}>
+                  <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); handleJoin(c.id, c.entryFee); }}>
                     Join ({formatR68(c.entryFee)} R68)
                   </button>
                 )}
@@ -188,13 +232,99 @@ export default function Competitions({ wallet, showToast }) {
                   <span className="badge badge-success">✓ Joined</span>
                 )}
                 {c.status === 1 && c.isJoined && (
-                  <button className="btn btn-warning btn-sm" onClick={() => setSelectedComp(c)}>
+                  <button className="btn btn-warning btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedComp(c); }}>
                     Submit Solution
                   </button>
                 )}
+                <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click for details →</span>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Competition Detail Modal */}
+      {detailComp && !selectedComp && (
+        <div className="modal-overlay" onClick={() => setDetailComp(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+              <div>
+                <span className={`comp-type ${COMP_CLASSES[detailComp.type]}`} style={{ marginBottom: '0.5rem', display: 'inline-block' }}>
+                  {COMP_ICONS[detailComp.type]} {COMP_TYPES[detailComp.type]}
+                </span>
+                <h3 style={{ margin: '0.5rem 0 0 0' }}>{detailComp.name}</h3>
+              </div>
+              <span className={`comp-status ${STATUS_CLASSES[detailComp.status]}`}>
+                {STATUS_LABELS[detailComp.status]}
+              </span>
+            </div>
+
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              {detailComp.description}
+            </p>
+
+            {/* Prize info */}
+            <div style={{ background: 'var(--bg-secondary)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>🎁 Winner Receives:</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span>🏠 Space NFT:</span>
+                <span>{detailComp.rewardMode === 0 ? `New ${SPACE_TYPES[detailComp.mintSpaceType]} (${formatR68(detailComp.mintSpaceValue)} R68 value)` : `Space #${detailComp.stakedSpaceId}`}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>💰 Prize Pool:</span>
+                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{formatR68(detailComp.prizePool)} R68</span>
+              </div>
+            </div>
+
+            {/* Details grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+              <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Entry Fee</div>
+                <div style={{ fontWeight: 600 }}>{formatR68(detailComp.entryFee)} R68</div>
+              </div>
+              <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Participants</div>
+                <div style={{ fontWeight: 600 }}>{detailComp.participantCount} / {detailComp.maxParticipants}</div>
+              </div>
+              <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Judge</div>
+                <div style={{ fontWeight: 600 }}>{detailComp.judge.slice(0, 6)}...{detailComp.judge.slice(-4)}</div>
+              </div>
+              <div style={{ padding: '0.5rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Duration</div>
+                <div style={{ fontWeight: 600 }}>{detailComp.endTime ? `${Math.floor(detailComp.endTime / 3600)}h` : 'Open'}</div>
+              </div>
+            </div>
+
+            {detailComp.status === 3 && detailComp.winner !== '0x0000000000000000000000000000000000000000' && (
+              <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', marginBottom: '1rem', color: 'var(--success)', fontWeight: 600 }}>
+                🏆 Winner: {detailComp.winner.slice(0, 8)}...{detailComp.winner.slice(-6)}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {detailComp.status === 0 && !detailComp.isJoined && (
+                <button className="btn btn-primary" onClick={() => handleJoin(detailComp.id, detailComp.entryFee)}>
+                  Join Competition ({formatR68(detailComp.entryFee)} R68)
+                </button>
+              )}
+              {detailComp.status === 0 && detailComp.isJoined && (
+                <span className="badge badge-success" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>✓ You've Joined — Waiting for start</span>
+              )}
+              {detailComp.status === 1 && detailComp.isJoined && (
+                <button className="btn btn-warning" onClick={() => { setSelectedComp(detailComp); }}>
+                  Submit Your Solution
+                </button>
+              )}
+              {detailComp.status === 1 && !detailComp.isJoined && (
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Competition in progress — you haven't joined</span>
+              )}
+              <button className="btn btn-secondary" onClick={() => setDetailComp(null)} style={{ marginLeft: 'auto' }}>
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -225,6 +355,66 @@ export default function Competitions({ wallet, showToast }) {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Competition Modal */}
+      {showCreate && (
+        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <h3 style={{ marginBottom: '1rem' }}>Create New Competition</h3>
+            <div className="form-group">
+              <label className="form-label">Competition Type</label>
+              <select className="form-input" value={newComp.type} onChange={(e) => setNewComp({ ...newComp, type: parseInt(e.target.value) })}>
+                {COMP_TYPES.map((t, i) => <option key={i} value={i}>{COMP_ICONS[i]} {t}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Name</label>
+              <input className="form-input" placeholder="e.g. Chess Grand Prix #2" value={newComp.name}
+                onChange={(e) => setNewComp({ ...newComp, name: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <textarea className="form-input" rows="2" placeholder="Describe the rules and how to win..."
+                value={newComp.desc} onChange={(e) => setNewComp({ ...newComp, desc: e.target.value })} style={{ resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="form-group">
+                <label className="form-label">Entry Fee (R68)</label>
+                <input className="form-input" type="number" placeholder="10" value={newComp.entryFee}
+                  onChange={(e) => setNewComp({ ...newComp, entryFee: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Max Participants</label>
+                <input className="form-input" type="number" min="2" placeholder="8" value={newComp.maxP}
+                  onChange={(e) => setNewComp({ ...newComp, maxP: parseInt(e.target.value) || 2 })} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Prize Space Type</label>
+                <select className="form-input" value={newComp.spaceType} onChange={(e) => setNewComp({ ...newComp, spaceType: parseInt(e.target.value) })}>
+                  {SPACE_TYPES.map((t, i) => <option key={i} value={i}>{t}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Space Value (R68)</label>
+                <input className="form-input" type="number" placeholder="150" value={newComp.spaceValue}
+                  onChange={(e) => setNewComp({ ...newComp, spaceValue: e.target.value })} />
+              </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Duration (hours)</label>
+                <input className="form-input" type="number" min="1" placeholder="72" value={newComp.hours}
+                  onChange={(e) => setNewComp({ ...newComp, hours: parseInt(e.target.value) || 1 })} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn btn-primary" onClick={handleCreateCompetition}>Create Competition</button>
+              <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
+              Note: Only the contract owner can create competitions. You'll be set as the judge.
+            </p>
           </div>
         </div>
       )}
