@@ -15,10 +15,10 @@ async function main() {
   const r68Address = await r68Token.getAddress();
   console.log("Room68Token deployed to:", r68Address);
 
-  // 2. Deploy LivingSpaceNFT
+  // 2. Deploy LivingSpaceNFT (requires r68Token for rental payments)
   console.log("\n--- Deploying LivingSpaceNFT ---");
   const LivingSpaceNFT = await hre.ethers.getContractFactory("LivingSpaceNFT");
-  const spaceNFT = await LivingSpaceNFT.deploy();
+  const spaceNFT = await LivingSpaceNFT.deploy(r68Address);
   await spaceNFT.waitForDeployment();
   const nftAddress = await spaceNFT.getAddress();
   console.log("LivingSpaceNFT deployed to:", nftAddress);
@@ -31,10 +31,10 @@ async function main() {
   const marketAddress = await market.getAddress();
   console.log("LivingSpaceMarket deployed to:", marketAddress);
 
-  // 4. Deploy LendingPool
+  // 4. Deploy LendingPool (requires spaceNFT for NFT collateral)
   console.log("\n--- Deploying LendingPool ---");
   const LendingPool = await hre.ethers.getContractFactory("LendingPool");
-  const lendingPool = await LendingPool.deploy(r68Address);
+  const lendingPool = await LendingPool.deploy(r68Address, nftAddress);
   await lendingPool.waitForDeployment();
   const lendingAddress = await lendingPool.getAddress();
   console.log("LendingPool deployed to:", lendingAddress);
@@ -58,41 +58,59 @@ async function main() {
   // 7. Configure permissions
   console.log("\n--- Configuring permissions ---");
 
-  // Authorize market and competition contracts to manage NFTs
   await spaceNFT.authorizeMarket(marketAddress);
   console.log("Market authorized on LivingSpaceNFT");
 
   await spaceNFT.authorizeMarket(competitionAddress);
   console.log("CompetitionManager authorized on LivingSpaceNFT");
 
-  // Add CompetitionManager as minter for R68 token (for rewards)
+  await spaceNFT.authorizeMarket(lendingAddress);
+  console.log("LendingPool authorized on LivingSpaceNFT");
+
   await r68Token.addMinter(competitionAddress);
   console.log("CompetitionManager added as R68 minter");
 
-  // Mint some initial living spaces
-  console.log("\n--- Minting initial living spaces ---");
-  const spaceTypes = [0, 0, 1, 1, 2, 3, 4]; // Studio, Studio, Apt, Apt, Penthouse, Mansion, Estate
-  const spaceNames = ["Studio Alpha", "Studio Beta", "Apartment Luxe", "Apartment Prime", "Penthouse Sky", "Mansion Grand", "Estate Royal"];
-  const spaceValues = [
-    hre.ethers.parseEther("100"),
-    hre.ethers.parseEther("120"),
-    hre.ethers.parseEther("500"),
-    hre.ethers.parseEther("600"),
-    hre.ethers.parseEther("2000"),
-    hre.ethers.parseEther("5000"),
-    hre.ethers.parseEther("10000"),
+  // 8. Mint initial living spaces (20 of 68 max — rest earned through competitions)
+  console.log("\n--- Minting initial living spaces (20 of 68 max) ---");
+  const initialSpaces = [
+    { name: "Studio Alpha", type: 0, value: "100" },
+    { name: "Studio Beta", type: 0, value: "120" },
+    { name: "Studio Gamma", type: 0, value: "110" },
+    { name: "Studio Delta", type: 0, value: "130" },
+    { name: "Studio Epsilon", type: 0, value: "115" },
+    { name: "Apartment Luxe", type: 1, value: "500" },
+    { name: "Apartment Prime", type: 1, value: "600" },
+    { name: "Apartment Nova", type: 1, value: "550" },
+    { name: "Apartment Zen", type: 1, value: "650" },
+    { name: "Apartment Vibe", type: 1, value: "580" },
+    { name: "Apartment Sol", type: 1, value: "620" },
+    { name: "Penthouse Sky", type: 2, value: "2000" },
+    { name: "Penthouse Cloud", type: 2, value: "2200" },
+    { name: "Penthouse Star", type: 2, value: "2500" },
+    { name: "Penthouse Moon", type: 2, value: "1800" },
+    { name: "Mansion Grand", type: 3, value: "5000" },
+    { name: "Mansion Noble", type: 3, value: "5500" },
+    { name: "Mansion Royal", type: 3, value: "6000" },
+    { name: "Estate Imperial", type: 4, value: "10000" },
+    { name: "Estate Sovereign", type: 4, value: "12000" },
   ];
 
-  for (let i = 0; i < spaceTypes.length; i++) {
+  const typeNames = ["Studio", "Apartment", "Penthouse", "Mansion", "Estate"];
+  for (let i = 0; i < initialSpaces.length; i++) {
+    const s = initialSpaces[i];
     await spaceNFT.mintSpace(
       deployer.address,
-      spaceNames[i],
-      spaceTypes[i],
-      spaceValues[i],
+      s.name,
+      s.type,
+      hre.ethers.parseEther(s.value),
       `ipfs://room68/space/${i}`
     );
-    console.log(`  Minted: ${spaceNames[i]} (value: ${hre.ethers.formatEther(spaceValues[i])} R68)`);
+    console.log(`  Minted: ${s.name} (${typeNames[s.type]}, value: ${s.value} R68)`);
   }
+
+  const remaining = await spaceNFT.remainingSpaces();
+  console.log(`\n  Total minted: ${initialSpaces.length} / 68`);
+  console.log(`  Remaining for competitions: ${remaining}`);
 
   // Summary
   console.log("\n========================================");
@@ -105,11 +123,11 @@ async function main() {
   console.log(`  CompetitionManager:${competitionAddress}`);
   console.log(`  SwapBridge:        ${swapAddress}`);
   console.log("========================================");
+  console.log("  Max Supply: 68 living spaces");
   console.log("  Network: ARC Testnet (Chain ID: 5042002)");
   console.log("  Explorer: https://testnet.arcscan.app");
   console.log("========================================\n");
 
-  // Write deployment addresses to file for frontend
   const fs = require("fs");
   const deploymentData = {
     network: "ARC Testnet",

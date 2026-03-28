@@ -14,14 +14,14 @@ export const ARC_TESTNET = {
   },
 };
 
-// Contract addresses — deployed on ARC Testnet
+// Contract addresses — deployed on ARC Testnet (v2 — 68 cap, rentals, NFT collateral, dual prizes)
 export const CONTRACTS = {
-  Room68Token: '0x9B7a4bBc697a45A6eB3583e7BD24AF81FD10FeBa',
-  LivingSpaceNFT: '0xC515a218c1b624C012DD642b2F7e82def8bA443c',
-  LivingSpaceMarket: '0xb1a994f5DC20C64C5f1a9ea6d4652890f85Cb658',
-  LendingPool: '0x6E25155db58bA82a1BC1C7B544ecd2A45766f593',
-  CompetitionManager: '0xE0cE125ab470a4f75C66bF0683Cc6dE706d13E97',
-  SwapBridge: '0xF1aD403595139c0c68A39E6eB2B264aCa36d57eB',
+  Room68Token: '0x6870EdC92a75D7cCbf5378c03eaDA56d02a64359',
+  LivingSpaceNFT: '0xC141f6a45e31F6Bf0dE669c65Abb02ABfaa3F4E4',
+  LivingSpaceMarket: '0xBe250b36561bE4D878fdec4A8fE0AB2754DF52B8',
+  LendingPool: '0x3d541CcBAeb8Be8f5DE83562C3f0e23c67f62c68',
+  CompetitionManager: '0x6a2Cb42c69920cA0e4a52Ee1c815a5568Ea7B7C9',
+  SwapBridge: '0x056Dfa7beDd816D804dDd9F08862251FcaaEebc5',
 };
 
 // Update these with your deployed addresses from deployment.json

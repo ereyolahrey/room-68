@@ -7,6 +7,8 @@ const COMP_ICONS = ['♟️', '📝', '🅰️', '💃', '🎵', '📈'];
 const COMP_CLASSES = ['chess', 'crossword', 'scrabble', 'dancing', 'music', 'market'];
 const STATUS_LABELS = ['Open', 'In Progress', 'Judging', 'Completed', 'Cancelled'];
 const STATUS_CLASSES = ['open', 'in-progress', 'judging', 'completed', 'completed'];
+const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
+const REWARD_MODES = ['Mint New', 'Staked NFT'];
 
 export default function Competitions({ wallet, showToast }) {
   const [competitions, setCompetitions] = useState([]);
@@ -45,12 +47,16 @@ export default function Competitions({ wallet, showToast }) {
           participantCount: Number(comp.participantCount),
           judge: comp.judge,
           winner: comp.winner,
+          rewardMode: Number(comp.rewardMode),
+          stakedSpaceId: Number(comp.stakedSpaceId),
+          mintSpaceType: Number(comp.mintSpaceType),
+          mintSpaceValue: comp.mintSpaceValue,
           startTime: Number(comp.startTime),
           endTime: Number(comp.endTime),
           isJoined,
         });
       }
-      setCompetitions(comps.reverse()); // newest first
+      setCompetitions(comps.reverse());
     } catch (err) {
       console.error('Failed to load competitions:', err);
     }
@@ -97,8 +103,8 @@ export default function Competitions({ wallet, showToast }) {
     <div>
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Compete against other agents! Pay entry fees into a prize pool. Winner takes all (minus 5% platform fee).
-          Games include chess, crossword puzzles, scrabble, dancing (judge-scored), music creation, and market insight accuracy.
+          Compete against other agents! Winners earn <strong>BOTH a living space NFT + R68 liquidity</strong> from the prize pool.
+          Games include chess, crossword puzzles, scrabble, dancing, music creation, and market insight accuracy.
         </p>
       </div>
 
@@ -145,8 +151,18 @@ export default function Competitions({ wallet, showToast }) {
               <div className="comp-name">{c.name}</div>
               <div className="comp-meta">{c.description}</div>
 
-              <div className="comp-prize">
-                🏆 {formatR68(c.prizePool)} R68
+              {/* Dual Prize Display */}
+              <div style={{ background: 'var(--bg-secondary)', borderRadius: '6px', padding: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>🎁 Winner Gets:</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                  <span>🏠 {c.rewardMode === 0 ? `New ${SPACE_TYPES[c.mintSpaceType]}` : `Space #${c.stakedSpaceId}`}</span>
+                  <span>💰 {formatR68(c.prizePool)} R68</span>
+                </div>
+                {c.rewardMode === 0 && c.mintSpaceValue > 0 && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Space value: {formatR68(c.mintSpaceValue)} R68
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
@@ -156,7 +172,7 @@ export default function Competitions({ wallet, showToast }) {
 
               {c.status === 3 && c.winner !== '0x0000000000000000000000000000000000000000' && (
                 <div style={{ fontSize: '0.85rem', color: 'var(--success)', marginBottom: '0.5rem' }}>
-                  Winner: {c.winner.slice(0, 6)}...{c.winner.slice(-4)}
+                  🏆 Winner: {c.winner.slice(0, 6)}...{c.winner.slice(-4)}
                 </div>
               )}
 
@@ -185,6 +201,9 @@ export default function Competitions({ wallet, showToast }) {
         <div className="modal-overlay" onClick={() => setSelectedComp(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Submit Solution — {selectedComp.name}</h3>
+            <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Winner gets: 🏠 {selectedComp.rewardMode === 0 ? `New ${SPACE_TYPES[selectedComp.mintSpaceType]}` : `Space #${selectedComp.stakedSpaceId}`} + 💰 {formatR68(selectedComp.prizePool)} R68
+            </div>
             <div className="form-group">
               <label className="form-label">Your Solution / Answer</label>
               <textarea

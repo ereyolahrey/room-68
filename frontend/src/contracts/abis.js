@@ -14,7 +14,9 @@ export const Room68TokenABI = [
 ];
 
 export const LivingSpaceNFTABI = [
+  "function MAX_SUPPLY() view returns (uint256)",
   "function totalSpaces() view returns (uint256)",
+  "function remainingSpaces() view returns (uint256)",
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function balanceOf(address owner) view returns (uint256)",
   "function getSpace(uint256 tokenId) view returns (tuple(uint256 id, string name, uint8 spaceType, uint8 status, uint256 value, uint256 createdAt, string metadataURI))",
@@ -23,7 +25,19 @@ export const LivingSpaceNFTABI = [
   "function transferFrom(address from, address to, uint256 tokenId)",
   "function setApprovalForAll(address operator, bool approved)",
   "function isApprovedForAll(address owner, address operator) view returns (bool)",
+  "function rentalListings(uint256 tokenId) view returns (uint256, address landlord, uint256 monthlyRent, uint256 deposit, uint256 minMonths, uint256 maxMonths, bool active)",
+  "function rentals(uint256 rentalId) view returns (uint256 tokenId, address landlord, address tenant, uint256 monthlyRent, uint256 deposit, uint256 startTime, uint256 endTime, uint256 lastRentPaid, bool active)",
+  "function nextRentalId() view returns (uint256)",
+  "function getActiveRentalListings() view returns (uint256[])",
+  "function listForRent(uint256 tokenId, uint256 monthlyRent, uint256 deposit, uint256 minMonths, uint256 maxMonths)",
+  "function rentSpace(uint256 tokenId, uint256 months)",
+  "function payRent(uint256 rentalId)",
+  "function endRental(uint256 rentalId)",
   "event SpaceMinted(uint256 indexed tokenId, address indexed to, uint8 spaceType, uint256 value)",
+  "event SpaceListedForRent(uint256 indexed tokenId, uint256 monthlyRent, uint256 deposit)",
+  "event SpaceRented(uint256 indexed rentalId, uint256 indexed tokenId, address landlord, address tenant)",
+  "event RentPaid(uint256 indexed rentalId, address tenant, uint256 amount)",
+  "event RentalEnded(uint256 indexed rentalId, uint256 indexed tokenId)",
   "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
 ];
 
@@ -45,10 +59,12 @@ export const LivingSpaceMarketABI = [
 
 export const LendingPoolABI = [
   "function offers(uint256) view returns (uint256 id, address lender, uint256 amount, uint256 remainingAmount, uint256 interestRateBps, uint256 minDuration, uint256 maxDuration, bool active, uint256 createdAt)",
-  "function loans(uint256) view returns (uint256 id, uint256 offerId, address borrower, address lender, uint256 principal, uint256 collateral, uint256 interestRateBps, uint256 startTime, uint256 duration, uint256 interestAccrued, bool repaid, bool liquidated)",
+  "function loans(uint256) view returns (uint256 id, uint256 offerId, address borrower, address lender, uint256 principal, uint256 collateral, uint256 nftCollateral, uint256 interestRateBps, uint256 startTime, uint256 duration, uint256 interestAccrued, bool repaid, bool liquidated)",
   "function totalLent(address) view returns (uint256)",
   "function totalBorrowed(address) view returns (uint256)",
   "function collateralBalance(address) view returns (uint256)",
+  "function nftLocked(uint256 tokenId) view returns (bool)",
+  "function nftLtvBps() view returns (uint256)",
   "function nextOfferId() view returns (uint256)",
   "function nextLoanId() view returns (uint256)",
   "function totalPoolLiquidity() view returns (uint256)",
@@ -58,19 +74,22 @@ export const LendingPoolABI = [
   "function createOffer(uint256 amount, uint256 interestRateBps, uint256 minDurationDays, uint256 maxDurationDays) returns (uint256)",
   "function cancelOffer(uint256 offerId)",
   "function borrow(uint256 offerId, uint256 amount, uint256 durationDays) returns (uint256)",
+  "function borrowWithNFT(uint256 offerId, uint256 nftTokenId, uint256 durationDays) returns (uint256)",
   "function repayLoan(uint256 loanId)",
   "function liquidate(uint256 loanId)",
   "event OfferCreated(uint256 indexed offerId, address indexed lender, uint256 amount, uint256 interestRate)",
   "event LoanCreated(uint256 indexed loanId, uint256 indexed offerId, address borrower, uint256 principal, uint256 collateral)",
+  "event NFTLoanCreated(uint256 indexed loanId, uint256 indexed offerId, address borrower, uint256 principal, uint256 nftTokenId)",
   "event LoanRepaid(uint256 indexed loanId, uint256 principal, uint256 interest)",
+  "event NFTLiquidated(uint256 indexed loanId, address liquidator, uint256 nftTokenId)",
 ];
 
 export const CompetitionManagerABI = [
-  "function competitions(uint256) view returns (uint256 id, uint8 competitionType, uint8 status, string name, string description, uint256 entryFee, uint256 prizePool, uint256 maxParticipants, uint256 participantCount, address judge, address winner, uint256 spaceReward, uint256 startTime, uint256 endTime, uint256 createdAt)",
+  "function competitions(uint256) view returns (uint256 id, uint8 competitionType, uint8 status, string name, string description, uint256 entryFee, uint256 prizePool, uint256 maxParticipants, uint256 participantCount, address judge, address winner, uint8 rewardMode, uint256 stakedSpaceId, uint8 mintSpaceType, uint256 mintSpaceValue, uint256 startTime, uint256 endTime, uint256 createdAt)",
   "function nextCompetitionId() view returns (uint256)",
   "function isParticipant(uint256, address) view returns (bool)",
   "function getParticipants(uint256 compId) view returns (address[])",
-  "function getCompetition(uint256 compId) view returns (tuple(uint256 id, uint8 competitionType, uint8 status, string name, string description, uint256 entryFee, uint256 prizePool, uint256 maxParticipants, uint256 participantCount, address judge, address winner, uint256 spaceReward, uint256 startTime, uint256 endTime, uint256 createdAt))",
+  "function getCompetition(uint256 compId) view returns (tuple(uint256 id, uint8 competitionType, uint8 status, string name, string description, uint256 entryFee, uint256 prizePool, uint256 maxParticipants, uint256 participantCount, address judge, address winner, uint8 rewardMode, uint256 stakedSpaceId, uint8 mintSpaceType, uint256 mintSpaceValue, uint256 startTime, uint256 endTime, uint256 createdAt))",
   "function scores(uint256, address) view returns (uint256)",
   "function joinCompetition(uint256 compId)",
   "function startCompetition(uint256 compId)",
@@ -79,9 +98,11 @@ export const CompetitionManagerABI = [
   "function startJudging(uint256 compId)",
   "function declareWinner(uint256 compId, address winner)",
   "function cancelCompetition(uint256 compId)",
+  "function createCompetitionMintReward(uint8 _type, string _name, string _description, uint256 _entryFee, uint256 _maxParticipants, address _judge, uint8 _spaceType, uint256 _spaceValue, uint256 _durationHours) returns (uint256)",
+  "function createCompetitionStakedReward(uint8 _type, string _name, string _description, uint256 _entryFee, uint256 _maxParticipants, address _judge, uint256 _stakedSpaceId, uint256 _durationHours) returns (uint256)",
   "event CompetitionCreated(uint256 indexed id, uint8 competitionType, string name, uint256 entryFee)",
   "event ParticipantJoined(uint256 indexed id, address indexed participant)",
-  "event WinnerDeclared(uint256 indexed id, address indexed winner, uint256 prize)",
+  "event WinnerDeclared(uint256 indexed id, address indexed winner, uint256 prize, uint256 spaceId)",
 ];
 
 export const SwapBridgeABI = [
