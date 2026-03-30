@@ -245,11 +245,18 @@ export default function Competitions({ wallet, showToast }) {
                   </button>
                 )}
                 {c.status === 0 && c.isJoined && (
-                  <span className="badge badge-success">✓ Joined</span>
+                  <button className="btn btn-warning btn-sm" onClick={(e) => { e.stopPropagation(); setPlayingGame(c); }}>
+                    🎮 Play Game
+                  </button>
                 )}
                 {c.status === 1 && c.isJoined && (
                   <button className="btn btn-warning btn-sm" onClick={(e) => { e.stopPropagation(); setPlayingGame(c); }}>
                     🎮 Play Game
+                  </button>
+                )}
+                {!c.isJoined && (c.status === 0 || c.status === 1) && (
+                  <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setPlayingGame(c); }}>
+                    👀 Try Game
                   </button>
                 )}
                 <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click for details →</span>
@@ -326,15 +333,19 @@ export default function Competitions({ wallet, showToast }) {
                 </button>
               )}
               {detailComp.status === 0 && detailComp.isJoined && (
-                <span className="badge badge-success" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>✓ You've Joined — Waiting for start</span>
+                <button className="btn btn-warning" onClick={() => { setPlayingGame(detailComp); setDetailComp(null); }}>
+                  🎮 Play Game
+                </button>
               )}
               {detailComp.status === 1 && detailComp.isJoined && (
                 <button className="btn btn-warning" onClick={() => { setPlayingGame(detailComp); setDetailComp(null); }}>
                   🎮 Play Game
                 </button>
               )}
-              {detailComp.status === 1 && !detailComp.isJoined && (
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Competition in progress — you haven't joined</span>
+              {(detailComp.status === 0 || detailComp.status === 1) && !detailComp.isJoined && (
+                <button className="btn btn-ghost" onClick={() => { setPlayingGame(detailComp); setDetailComp(null); }}>
+                  👀 Try Game
+                </button>
               )}
               <button className="btn btn-secondary" onClick={() => setDetailComp(null)} style={{ marginLeft: 'auto' }}>
                 Close
@@ -398,6 +409,11 @@ export default function Competitions({ wallet, showToast }) {
                 <GameComponent
                   competitionId={playingGame.id}
                   onScoreSubmit={async (score, description) => {
+                    if (!playingGame.isJoined) {
+                      showToast(`Game over! Your score: ${score} pts. Join the competition to submit scores on-chain!`, 'info');
+                      setPlayingGame(null);
+                      return;
+                    }
                     try {
                       const solutionText = `GAME_SCORE:${score}|${description}`;
                       const contracts = getContracts(wallet.signer);
