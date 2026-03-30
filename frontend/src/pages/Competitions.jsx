@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getContracts, getReadProvider, formatUSDC, parseUSDC, logActivity } from '../utils/wallet.js';
 import { CONTRACTS } from '../contracts/config.js';
+import ChessGame from '../games/ChessGame.jsx';
+import WordleGame from '../games/WordleGame.jsx';
+import CrosswordGame from '../games/CrosswordGame.jsx';
+import DanceGame from '../games/DanceGame.jsx';
+import MusicMaker from '../games/MusicMaker.jsx';
+import MarketPredict from '../games/MarketPredict.jsx';
 
 const COMP_TYPES = ['Chess', 'Crossword', 'Scrabble', 'Dancing', 'Music', 'Market Insight'];
 const COMP_ICONS = ['♟️', '📝', '🅰️', '💃', '🎵', '📈'];
@@ -10,6 +16,15 @@ const STATUS_CLASSES = ['open', 'in-progress', 'judging', 'completed', 'complete
 const SPACE_TYPES = ['Studio', 'Apartment', 'Penthouse', 'Mansion', 'Estate'];
 const REWARD_MODES = ['Mint New', 'Staked NFT'];
 
+const GAME_COMPONENTS = {
+  0: ChessGame,
+  1: CrosswordGame,
+  2: WordleGame,
+  3: DanceGame,
+  4: MusicMaker,
+  5: MarketPredict,
+};
+
 export default function Competitions({ wallet, showToast }) {
   const [competitions, setCompetitions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +32,8 @@ export default function Competitions({ wallet, showToast }) {
   const [detailComp, setDetailComp] = useState(null);
   const [solution, setSolution] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [newComp, setNewComp] = useState({ type: 0, name: '', desc: '', entryFee: '', maxP: 8, spaceType: 0, spaceValue: '', hours: 72 });
+  const [playingGame, setPlayingGame] = useState(null);
+  const [newComp, setNewComp] = useState({ type: 0, name: '', desc: '', entryFee: '', maxP: 8, spaceType: 0, spaceValue: '', hours: 72, judge: '' });
 
   useEffect(() => {
     loadCompetitions();
@@ -115,14 +131,14 @@ export default function Competitions({ wallet, showToast }) {
       const tx = await contracts.competition.createCompetitionMintReward(
         newComp.type, newComp.name, newComp.desc,
         parseUSDC(newComp.entryFee), newComp.maxP,
-        wallet.address,
+        newComp.judge.trim() || wallet.address,
         newComp.spaceType, parseUSDC(newComp.spaceValue), newComp.hours
       );
       const receipt = await tx.wait();
       logActivity('competition', `Created competition: ${newComp.name}`, { txHash: receipt.hash });
       showToast(`Competition created! Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
       setShowCreate(false);
-      setNewComp({ type: 0, name: '', desc: '', entryFee: '', maxP: 8, spaceType: 0, spaceValue: '', hours: 72 });
+      setNewComp({ type: 0, name: '', desc: '', entryFee: '', maxP: 8, spaceType: 0, spaceValue: '', hours: 72, judge: '' });
       loadCompetitions();
     } catch (err) {
       showToast(`Create failed: ${err.reason || err.message}`, 'error');
@@ -232,8 +248,8 @@ export default function Competitions({ wallet, showToast }) {
                   <span className="badge badge-success">✓ Joined</span>
                 )}
                 {c.status === 1 && c.isJoined && (
-                  <button className="btn btn-warning btn-sm" onClick={(e) => { e.stopPropagation(); setSelectedComp(c); }}>
-                    Submit Solution
+                  <button className="btn btn-warning btn-sm" onClick={(e) => { e.stopPropagation(); setPlayingGame(c); }}>
+                    🎮 Play Game
                   </button>
                 )}
                 <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Click for details →</span>
@@ -313,8 +329,8 @@ export default function Competitions({ wallet, showToast }) {
                 <span className="badge badge-success" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>✓ You've Joined — Waiting for start</span>
               )}
               {detailComp.status === 1 && detailComp.isJoined && (
-                <button className="btn btn-warning" onClick={() => { setSelectedComp(detailComp); }}>
-                  Submit Your Solution
+                <button className="btn btn-warning" onClick={() => { setPlayingGame(detailComp); setDetailComp(null); }}>
+                  🎮 Play Game
                 </button>
               )}
               {detailComp.status === 1 && !detailComp.isJoined && (
@@ -328,8 +344,8 @@ export default function Competitions({ wallet, showToast }) {
         </div>
       )}
 
-      {/* Solution Submission Modal */}
-      {selectedComp && (
+      {/* Solution Submission Modal (fallback for text) */}
+      {selectedComp && !playingGame && (
         <div className="modal-overlay" onClick={() => setSelectedComp(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Submit Solution — {selectedComp.name}</h3>
@@ -355,6 +371,50 @@ export default function Competitions({ wallet, showToast }) {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Playing Modal */}
+      {playingGame && (
+        <div className="modal-overlay game-modal-overlay" onClick={() => setPlayingGame(null)}>
+          <div className="modal game-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <span className={`comp-type ${COMP_CLASSES[playingGame.type]}`}>
+                  {COMP_ICONS[playingGame.type]} {COMP_TYPES[playingGame.type]}
+                </span>
+                <h3 style={{ margin: '0.5rem 0 0' }}>{playingGame.name}</h3>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setPlayingGame(null)}>✕</button>
+            </div>
+            <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Winner gets: 🏠 {playingGame.rewardMode === 0 ? `New ${SPACE_TYPES[playingGame.mintSpaceType]}` : `Space #${playingGame.stakedSpaceId}`} + 💰 {formatUSDC(playingGame.prizePool)} USDC
+            </div>
+            {(() => {
+              const GameComponent = GAME_COMPONENTS[playingGame.type];
+              if (!GameComponent) return <p>Game type not supported yet</p>;
+              return (
+                <GameComponent
+                  competitionId={playingGame.id}
+                  onScoreSubmit={async (score, description) => {
+                    try {
+                      const solutionText = `GAME_SCORE:${score}|${description}`;
+                      const contracts = getContracts(wallet.signer);
+                      showToast('Submitting game score on-chain...', 'info');
+                      const tx = await contracts.competition.submitSolution(playingGame.id, solutionText);
+                      const receipt = await tx.wait();
+                      logActivity('competition', `Game score submitted for #${playingGame.id}: ${score} pts`, { txHash: receipt.hash });
+                      showToast(`Score submitted! ${score} pts — Tx: ${receipt.hash.slice(0, 10)}...`, 'success');
+                      setPlayingGame(null);
+                      loadCompetitions();
+                    } catch (err) {
+                      showToast(`Score submission failed: ${err.reason || err.message}`, 'error');
+                    }
+                  }}
+                />
+              );
+            })()}
           </div>
         </div>
       )}
@@ -407,13 +467,18 @@ export default function Competitions({ wallet, showToast }) {
                 <input className="form-input" type="number" min="1" placeholder="72" value={newComp.hours}
                   onChange={(e) => setNewComp({ ...newComp, hours: parseInt(e.target.value) || 1 })} />
               </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Judge Address (optional — leave blank to use a system judge so you can participate)</label>
+                <input className="form-input" placeholder="0x... or leave empty"
+                  value={newComp.judge} onChange={(e) => setNewComp({ ...newComp, judge: e.target.value })} />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button className="btn btn-primary" onClick={handleCreateCompetition}>Create Competition</button>
               <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
             </div>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
-              Note: Only the contract owner can create competitions. You'll be set as the judge.
+              Note: The judge cannot participate in competitions they judge. Leave the judge field empty to use your wallet as judge, or enter a different address if you want to play.
             </p>
           </div>
         </div>

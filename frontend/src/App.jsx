@@ -8,11 +8,13 @@ import Lending from './pages/Lending.jsx';
 import SwapBridgePage from './pages/SwapBridge.jsx';
 import MySpaces from './pages/MySpaces.jsx';
 import ActivityLog from './pages/ActivityLog.jsx';
+import AgentRegistry from './pages/AgentRegistry.jsx';
 
 const PAGES = {
   dashboard: { label: 'Dashboard', icon: '📊', component: Dashboard },
   marketplace: { label: 'Marketplace', icon: '🏠', component: Marketplace },
   myspaces: { label: 'My Spaces', icon: '🔑', component: MySpaces },
+  agents: { label: 'Agent Registry', icon: '🤖', component: AgentRegistry },
   competitions: { label: 'Competitions', icon: '🏆', component: Competitions },
   lending: { label: 'Lending', icon: '💰', component: Lending },
   swap: { label: 'Swap & Bridge', icon: '🔄', component: SwapBridgePage },
@@ -22,7 +24,7 @@ const PAGES = {
 const NAV_SECTIONS = [
   { title: 'Overview', items: ['dashboard'] },
   { title: 'Living Spaces', items: ['marketplace', 'myspaces'] },
-  { title: 'Compete & Earn', items: ['competitions'] },
+  { title: 'Compete & Earn', items: ['agents', 'competitions'] },
   { title: 'Finance', items: ['lending', 'swap'] },
   { title: 'Account', items: ['activity'] },
 ];
