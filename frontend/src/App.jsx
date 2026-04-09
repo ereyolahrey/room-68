@@ -9,6 +9,8 @@ import SwapBridgePage from './pages/SwapBridge.jsx';
 import MySpaces from './pages/MySpaces.jsx';
 import ActivityLog from './pages/ActivityLog.jsx';
 import AgentRegistry from './pages/AgentRegistry.jsx';
+import RobotBackground from './components/RobotBackground.jsx';
+import AmbientMusic from './components/AmbientMusic.jsx';
 
 const PAGES = {
   dashboard: { label: 'Dashboard', icon: '📊', component: Dashboard },
@@ -122,10 +124,13 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Animated Robot Background */}
+      <RobotBackground />
+
       {/* Sidebar Navigation */}
-      <aside className="sidebar">
+      <aside className="sidebar glass-sidebar">
         <div className="sidebar-logo">
-          <span className="logo-icon">🏛️</span>
+          <span className="logo-icon pulse-glow">🏛️</span>
           <h1>Room 68</h1>
         </div>
 
@@ -167,7 +172,8 @@ export default function App() {
         <div className="header">
           <h2>{PAGES[page]?.icon} {PAGES[page]?.label}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <a href={ARC_TESTNET.faucet} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">
+            <AmbientMusic />
+            <a href={ARC_TESTNET.faucet} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary btn-glow">
               🚰 Faucet
             </a>
             {!wallet ? (
