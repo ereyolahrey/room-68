@@ -103,7 +103,7 @@ async function main() {
       deployer.address,
       s.name,
       s.type,
-      hre.ethers.parseEther(s.value),
+      hre.ethers.parseUnits(s.value, 6),
       `ipfs://room68/space/${i}`
     );
     console.log(`  Minted: ${s.name} (${typeNames[s.type]}, value: ${s.value} USDC)`);

@@ -45,13 +45,24 @@ export default function App() {
   }, []);
 
   const loadBalance = useCallback(async (w) => {
-    if (w) {
+    if (!w) return;
+    try {
+      // Primary: ERC20 balanceOf via direct RPC (bypasses MetaMask provider issues)
+      const readProvider = getReadProvider();
+      const contracts = getContracts(readProvider);
+      const erc20Bal = await contracts.token.balanceOf(w.address);
+      setBalance(formatUSDC(erc20Bal));
+    } catch (err) {
+      console.error('Balance load error (primary):', err);
       try {
-        // Use native balance (18 decimals) — on ARC Testnet USDC is the native gas token.
-        // The ERC20 wrapper at 0x3600... reports 6 decimals, which mismatches formatEther.
-        const bal = await w.provider.getBalance(w.address);
-        setBalance(formatUSDC(bal));
-      } catch { setBalance('0'); }
+        // Fallback: try via wallet provider
+        const contracts = getContracts(w.provider);
+        const erc20Bal = await contracts.token.balanceOf(w.address);
+        setBalance(formatUSDC(erc20Bal));
+      } catch (err2) {
+        console.error('Balance load error (fallback):', err2);
+        setBalance('0');
+      }
     }
   }, []);
 

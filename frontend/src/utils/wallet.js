@@ -107,13 +107,13 @@ export function shortenAddress(addr) {
 }
 
 export function formatUSDC(value) {
-  return parseFloat(ethers.formatEther(value)).toLocaleString(undefined, {
+  return parseFloat(ethers.formatUnits(value, 6)).toLocaleString(undefined, {
     maximumFractionDigits: 2,
   });
 }
 
 export function parseUSDC(value) {
-  return ethers.parseEther(value.toString());
+  return ethers.parseUnits(value.toString(), 6);
 }
 
 export function getExplorerUrl(type, hash) {
