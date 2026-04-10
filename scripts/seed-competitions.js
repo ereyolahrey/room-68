@@ -12,6 +12,27 @@ async function main() {
 
   const competition = await hre.ethers.getContractAt("CompetitionManager", compAddress);
 
+  // Cancel old competitions that used wrong 18-decimal values
+  const existingCount = Number(await competition.nextCompetitionId());
+  if (existingCount > 0) {
+    console.log(`\nCancelling ${existingCount} old competitions with wrong decimals...`);
+    for (let i = 0; i < existingCount; i++) {
+      try {
+        const comp = await competition.getCompetition(i);
+        // Only cancel if Open or InProgress (status 0 or 1)
+        if (Number(comp.status) <= 1) {
+          const tx = await competition.cancelCompetition(i);
+          await tx.wait();
+          console.log(`  ✗ Cancelled competition #${i} (${comp.name})`);
+        } else {
+          console.log(`  - Skipped #${i} (status: ${Number(comp.status)})`);
+        }
+      } catch (err) {
+        console.log(`  - Skip #${i}: ${err.reason || err.message}`);
+      }
+    }
+  }
+
   const usdc = (n) => hre.ethers.parseUnits(String(n), 6);
 
   // Competition types: 0=Chess, 1=Crossword, 2=Scrabble, 3=Dancing, 4=Music, 5=MarketInsight
@@ -67,8 +88,8 @@ async function main() {
       deployer.address, // judge = deployer for testing
       c.spaceType, c.spaceValue, c.hours
     );
-    await tx.wait();
-    console.log(`  ✓ Created competition #${i}`);
+    const receipt = await tx.wait();
+    console.log(`  ✓ Created: ${c.name}`);
   }
 
   const total = await competition.nextCompetitionId();
