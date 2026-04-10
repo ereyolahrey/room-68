@@ -14,15 +14,15 @@ export const ARC_TESTNET = {
   },
 };
 
-// Contract addresses — deployed on ARC Testnet (v3 — USDC/EURC, 68 cap, rentals, NFT collateral, dual prizes)
+// Contract addresses — deployed on ARC Testnet (v4 — correct 6-decimal USDC)
 export const CONTRACTS = {
   USDC: '0x3600000000000000000000000000000000000000',
   EURC: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',
-  LivingSpaceNFT: '0x1C6A6749e58F819ee4a20113E31261353e4bec54',
-  LivingSpaceMarket: '0x2508142Bee0592DF9a5DbAB18998B61d42aD9Fb9',
-  LendingPool: '0xEd6a9a6209B01010902Cfb6979A1aa8a20d0916C',
-  CompetitionManager: '0x7F93411761C34a368320b8e6518941879c90Ec90',
-  SwapBridge: '0x547242E0926F6437fb78b60a6847ABF8085c436D',
+  LivingSpaceNFT: '0x6565330A267a023Eb0756EBa86F1AEb01Fd7880C',
+  LivingSpaceMarket: '0x70e173Dda6c1551a69408b9F714784483D8a3789',
+  LendingPool: '0x8c8A1E9C8aa76ef9B82aCE1aC815EBfcC3999620',
+  CompetitionManager: '0x5eA06842dF773640E5efADED90C0d52D36795EC6',
+  SwapBridge: '0x52543BCd2E451B723a64beDD31f2d38Df23e4d64',
 };
 
 // Update these with your deployed addresses from deployment.json
