@@ -45,10 +45,11 @@ export default function App() {
   }, []);
 
   const loadBalance = useCallback(async (w) => {
-    if (CONTRACTS.USDC && w) {
+    if (w) {
       try {
-        const contracts = getContracts(w.signer);
-        const bal = await contracts.token.balanceOf(w.address);
+        // Use native balance (18 decimals) — on ARC Testnet USDC is the native gas token.
+        // The ERC20 wrapper at 0x3600... reports 6 decimals, which mismatches formatEther.
+        const bal = await w.provider.getBalance(w.address);
         setBalance(formatUSDC(bal));
       } catch { setBalance('0'); }
     }
