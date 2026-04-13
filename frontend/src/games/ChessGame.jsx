@@ -97,7 +97,7 @@ export default function ChessGame({ onScoreSubmit, competitionId }) {
           onPieceDrop={onDrop}
           boardWidth={400}
           customBoardStyle={{ borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}
-          customDarkSquareStyle={{ backgroundColor: '#0a4d20' }}
+          customDarkSquareStyle={{ backgroundColor: '#1b3158' }}
           customLightSquareStyle={{ backgroundColor: '#1a1a2e' }}
         />
       </div>
